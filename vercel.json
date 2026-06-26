@@ -1,5 +1,4 @@
 {
-  "rootDirectory": "expence-manager",
   "buildCommand": "npm run build",
   "installCommand": "npm install --audit=false --fund=false",
   "outputDirectory": ".next",
