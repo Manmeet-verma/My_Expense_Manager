@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  SUPERVISOR
+  VERIFIER
+  MEMBER
+}
+
+enum ExpenseStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String?
+  fatherName   String?
+  aadhaarNo    String?
+  password     String
+  role         Role      @default(MEMBER)
+  assignedProject String[] @default([])
+  assignedVerifierIds String[] @default([])
+  assignedVerifierId String?
+  assignedVerifier User? @relation("VerifierAssignments", fields: [assignedVerifierId], references: [id], onDelete: SetNull)
+  assignedInputters User[] @relation("VerifierAssignments")
+  totalBudget  Float     @default(0)
+  receivedAmount Float   @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  expenses     Expense[] @relation("ExpenseCreatedBy")
+  approvedExpenses Expense[] @relation("ExpenseApprovedBy")
+  funds        Fund[]
+}
+
+model Expense {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  amount       Float
+  editCount    Int      @default(0)
+  category     String
+  status       ExpenseStatus   @default(PENDING)
+  adminRemark  String?
+  approvedByName String?
+  approvedByRole Role?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  createdById  String
+  createdBy    User     @relation("ExpenseCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  approvedById String?
+  approvedBy   User?    @relation("ExpenseApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+}
+
+enum PaymentMode {
+  CASH
+  GPAY
+  BANK_ACCOUNT
+}
+
+model Fund {
+  id            String      @id @default(cuid())
+  amount        Float
+  receivedFrom  String
+  paymentMode   PaymentMode
+  upiId         String?
+  accountNumber String?
+  fundDate      DateTime    @default(now())
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  subHead     String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Project {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

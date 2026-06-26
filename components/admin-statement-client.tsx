@@ -1,0 +1,265 @@
+'use client'
+
+import { useMemo, useState } from "react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { formatCurrency, formatDate } from "@/lib/utils"
+import { ExportExcelButton } from "@/components/export-excel-button"
+import { Search, CheckCircle, XCircle, Clock } from "lucide-react"
+
+interface Expense {
+  id: string
+  title: string
+  description: string | null
+  amount: number
+  category: string
+  status: "APPROVED" | "REJECTED" | "PENDING" | "PAID"
+  createdAt: Date
+  approvedBy?: {
+    id: string
+    name: string | null
+    email: string
+    role: "ADMIN" | "SUPERVISOR" | "VERIFIER" | "MEMBER"
+  } | null
+}
+
+interface AdminStatementClientProps {
+  userId: string
+}
+
+function formatCategory(category: string): string {
+  if (category === "OFFICE_GOODS") return "Office Goods"
+  if (category === "FREIGHT") return "Freight/Gaddi"
+  return category.charAt(0) + category.slice(1).toLowerCase().replace(/_/g, " ")
+}
+
+function getRoleLabel(role: "ADMIN" | "SUPERVISOR" | "VERIFIER" | "MEMBER"): string {
+  if (role === "SUPERVISOR" || role === "VERIFIER") return "Verifier"
+  if (role === "ADMIN") return "Admin"
+  return "Inputter"
+}
+
+function getApprovedBy(expense: Expense): string {
+  const { status, approvedBy } = expense
+  if (status === "PENDING") return "Pending"
+  if (approvedBy) {
+    const roleLabel = getRoleLabel(approvedBy.role)
+    const actor = approvedBy.name || approvedBy.email
+    return `${actor} (${roleLabel})`
+  }
+  if (status === "PAID") return "Admin (Admin)"
+  return "Verifier (Verifier)"
+}
+
+export function AdminStatementClient({ userId }: AdminStatementClientProps) {
+  const [fromDate, setFromDate] = useState("")
+  const [toDate, setToDate] = useState("")
+  const [approvedExpenses, setApprovedExpenses] = useState<Expense[]>([])
+  const [rejectedExpenses, setRejectedExpenses] = useState<Expense[]>([])
+  const [pendingExpenses, setPendingExpenses] = useState<Expense[]>([])
+  const [activeTab, setActiveTab] = useState<"approved" | "rejected" | "pending">("approved")
+  const [loading, setLoading] = useState(false)
+  const [hasSearched, setHasSearched] = useState(false)
+
+  async function handleSearch() {
+    if (!fromDate || !toDate) return
+
+    setLoading(true)
+    setHasSearched(true)
+
+    try {
+      const params = new URLSearchParams({
+        fromDate,
+        toDate,
+        userId,
+      })
+
+      const [approvedRes, rejectedRes, pendingRes] = await Promise.all([
+        fetch(`/api/expenses/statement?${params.toString()}&status=APPROVED`),
+        fetch(`/api/expenses/statement?${params.toString()}&status=REJECTED`),
+        fetch(`/api/expenses/statement?${params.toString()}&status=PENDING`),
+      ])
+
+      const approvedData = await approvedRes.json()
+      const rejectedData = await rejectedRes.json()
+      const pendingData = await pendingRes.json()
+
+      setApprovedExpenses(approvedData)
+      setRejectedExpenses(rejectedData)
+      setPendingExpenses(pendingData)
+    } catch (error) {
+      console.error("Failed to fetch expenses:", error)
+    }
+
+    setLoading(false)
+  }
+
+  const approvedTotal = approvedExpenses.reduce((sum, exp) => sum + exp.amount, 0)
+  const rejectedTotal = rejectedExpenses.reduce((sum, exp) => sum + exp.amount, 0)
+  const pendingTotal = pendingExpenses.reduce((sum, exp) => sum + exp.amount, 0)
+  const currentExpenses = activeTab === "approved" ? approvedExpenses : activeTab === "rejected" ? rejectedExpenses : pendingExpenses
+  const currentTotal = activeTab === "approved" ? approvedTotal : activeTab === "rejected" ? rejectedTotal : pendingTotal
+  const currentExportData = useMemo(
+    () =>
+      currentExpenses.map((expense, index) => ({
+        "Sr No": index + 1,
+        Date: formatDate(expense.createdAt),
+        Category: formatCategory(expense.category),
+        Description: expense.description || "-",
+        Amount: expense.amount,
+        Status: activeTab === "approved" ? "Approved" : activeTab === "rejected" ? "Rejected" : "Pending",
+        "Approved By": getApprovedBy(expense),
+      })),
+    [currentExpenses, activeTab]
+  )
+
+  const statusColors = {
+    approved: "bg-green-100 text-green-700 border-green-300",
+    rejected: "bg-red-100 text-red-700 border-red-300",
+    pending: "bg-yellow-100 text-yellow-700 border-yellow-300",
+  }
+
+  const totalColor = activeTab === "approved" ? "text-green-600" : activeTab === "rejected" ? "text-red-600" : "text-yellow-600"
+
+  return (
+    <div className="space-y-3">
+      <Card className="bg-white">
+        <CardContent className="p-3">
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-gray-600">From</span>
+              <Input
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                className="h-7 w-32 text-xs"
+              />
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-gray-600">To</span>
+              <Input
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                className="h-7 w-32 text-xs"
+              />
+            </div>
+            <Button
+              onClick={() => void handleSearch()}
+              disabled={!fromDate || !toDate || loading}
+              className="h-7 text-xs px-3"
+            >
+              <Search className="w-3 h-3 mr-1" />
+              {loading ? "..." : "Search"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {hasSearched && (
+        <>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => setActiveTab("approved")}
+              className={`flex items-center gap-1 px-3 py-1 text-xs rounded font-medium transition border ${
+                activeTab === "approved" ? statusColors.approved : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              <CheckCircle className="w-3 h-3" />
+              Approved ({approvedExpenses.length})
+            </button>
+            <button
+              onClick={() => setActiveTab("rejected")}
+              className={`flex items-center gap-1 px-3 py-1 text-xs rounded font-medium transition border ${
+                activeTab === "rejected" ? statusColors.rejected : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              <XCircle className="w-3 h-3" />
+              Not Approved ({rejectedExpenses.length})
+            </button>
+            <button
+              onClick={() => setActiveTab("pending")}
+              className={`flex items-center gap-1 px-3 py-1 text-xs rounded font-medium transition border ${
+                activeTab === "pending" ? statusColors.pending : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              <Clock className="w-3 h-3" />
+              Pending ({pendingExpenses.length})
+            </button>
+            <div className="ml-auto flex items-center gap-2">
+              <span className="text-xs text-gray-500">Total:</span>
+              <span className={`text-sm font-bold ${totalColor}`}>
+                {formatCurrency(currentTotal)}
+              </span>
+              <ExportExcelButton
+                data={currentExportData}
+                fileName={`admin-statement-${activeTab}`}
+                sheetName="Statement"
+                label="Export Excel"
+              />
+            </div>
+          </div>
+
+          <Card className="bg-white">
+            <CardContent className="p-0">
+              {currentExpenses.length === 0 ? (
+                <div className="text-center py-6 text-xs text-gray-500">
+                  No {activeTab === "approved" ? "approved" : activeTab === "rejected" ? "rejected" : "pending"} expenses found
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead className="bg-gray-50 text-left">
+                      <tr>
+                        <th className="px-3 py-2 font-semibold text-gray-600">Date</th>
+                        <th className="px-3 py-2 font-semibold text-gray-600">Category</th>
+                        <th className="px-3 py-2 font-semibold text-gray-600">Description</th>
+                        <th className="px-3 py-2 font-semibold text-gray-600 text-right">Credit</th>
+                        <th className="px-3 py-2 font-semibold text-gray-600 text-right">Debit</th>
+                        <th className="px-3 py-2 font-semibold text-gray-600 text-right">Amount</th>
+                        <th className="px-3 py-2 font-semibold text-gray-600 text-right">Day Total</th>
+                        <th className="px-3 py-2 font-semibold text-gray-600">Status</th>
+                        <th className="px-3 py-2 font-semibold text-gray-600">Approved By</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {currentExpenses.map((expense) => {
+                        const dayTotal = currentExpenses
+                          .filter(e => formatDate(e.createdAt) === formatDate(expense.createdAt))
+                          .reduce((sum, e) => sum + e.amount, 0)
+                        return (
+                          <tr key={expense.id} className="hover:bg-gray-50 odd:bg-gray-50">
+                            <td className="px-3 py-2 text-gray-700">{formatDate(expense.createdAt)}</td>
+                            <td className="px-3 py-2 text-gray-700">{formatCategory(expense.category)}</td>
+                            <td className="px-3 py-2 text-gray-700">{expense.description || "-"}</td>
+                            <td className="px-3 py-2 text-gray-600 text-right">-</td>
+                            <td className="px-3 py-2 font-semibold text-gray-900 text-right">{formatCurrency(expense.amount)}</td>
+                            <td className="px-3 py-2 font-semibold text-gray-900 text-right">{formatCurrency(expense.amount)}</td>
+                            <td className="px-3 py-2 text-gray-600 text-right">{formatCurrency(dayTotal)}</td>
+                            <td className="px-3 py-2">
+                              <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                activeTab === "approved" 
+                                  ? "bg-green-100 text-green-700" 
+                                  : activeTab === "rejected"
+                                  ? "bg-red-100 text-red-700"
+                                  : "bg-yellow-100 text-yellow-700"
+                              }`}>
+                                {activeTab === "approved" ? "Approved" : activeTab === "rejected" ? "Not Approved" : "Pending"}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 text-gray-700">{getApprovedBy(expense)}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
+    </div>
+  )
+}

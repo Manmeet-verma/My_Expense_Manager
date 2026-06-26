@@ -1,0 +1,9 @@
+﻿git : To https://github.com/Manmeet-verma/expense_manage.git
+At line:1 char:204
++ ... -FilePath .git-commit-check.txt -Encoding utf8; git push *>&1 | Out-F ...
++                                                     ~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (To https://gith...ense_manage.git 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+   e4ec03f..dbfbb2b  main -> main
