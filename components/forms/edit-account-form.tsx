@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import type { FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import { updateAccount } from "@/actions/auth"
@@ -27,23 +27,11 @@ export function EditAccountForm({ account, onCancel, onSuccess }: EditAccountFor
   const router = useRouter()
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
-  const [formData, setFormData] = useState({
-    name: account.name || "",
-    email: account.email || "",
-    fatherName: account.fatherName || "",
-    aadhaarNo: account.aadhaarNo || "",
-    newPassword: "",
-  })
-
-  useEffect(() => {
-    setFormData({
-      name: account.name || "",
-      email: account.email || "",
-      fatherName: account.fatherName || "",
-      aadhaarNo: account.aadhaarNo || "",
-      newPassword: "",
-    })
-  }, [account])
+  const [name, setName] = useState(account.name || "")
+  const [email, setEmail] = useState(account.email || "")
+  const [fatherName, setFatherName] = useState(account.fatherName || "")
+  const [aadhaarNo, setAadhaarNo] = useState(account.aadhaarNo || "")
+  const [newPassword, setNewPassword] = useState("")
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -52,11 +40,11 @@ export function EditAccountForm({ account, onCancel, onSuccess }: EditAccountFor
 
     const result = await updateAccount({
       userId: account.id,
-      name: formData.name,
-      email: formData.email,
-      fatherName: formData.fatherName,
-      aadhaarNo: formData.aadhaarNo,
-      newPassword: formData.newPassword,
+      name,
+      email,
+      fatherName,
+      aadhaarNo,
+      newPassword,
     })
 
     if (result?.error) {
@@ -93,8 +81,8 @@ export function EditAccountForm({ account, onCancel, onSuccess }: EditAccountFor
               <Label htmlFor="edit-name">Name</Label>
               <Input
                 id="edit-name"
-                value={formData.name}
-                onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 required
               />
             </div>
@@ -104,8 +92,8 @@ export function EditAccountForm({ account, onCancel, onSuccess }: EditAccountFor
               <Input
                 id="edit-email"
                 type="email"
-                value={formData.email}
-                onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
@@ -114,8 +102,8 @@ export function EditAccountForm({ account, onCancel, onSuccess }: EditAccountFor
               <Label htmlFor="edit-father-name">Father&apos;s Name</Label>
               <Input
                 id="edit-father-name"
-                value={formData.fatherName}
-                onChange={(e) => setFormData((prev) => ({ ...prev, fatherName: e.target.value }))}
+                value={fatherName}
+                onChange={(e) => setFatherName(e.target.value)}
                 required
               />
             </div>
@@ -126,8 +114,8 @@ export function EditAccountForm({ account, onCancel, onSuccess }: EditAccountFor
                 id="edit-aadhaar"
                 inputMode="numeric"
                 maxLength={12}
-                value={formData.aadhaarNo}
-                onChange={(e) => setFormData((prev) => ({ ...prev, aadhaarNo: e.target.value }))}
+                value={aadhaarNo}
+                onChange={(e) => setAadhaarNo(e.target.value)}
                 required
               />
             </div>
@@ -138,8 +126,8 @@ export function EditAccountForm({ account, onCancel, onSuccess }: EditAccountFor
                 id="edit-password"
                 type="password"
                 placeholder="Leave blank to keep current password"
-                value={formData.newPassword}
-                onChange={(e) => setFormData((prev) => ({ ...prev, newPassword: e.target.value }))}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
                 autoComplete="new-password"
               />
             </div>

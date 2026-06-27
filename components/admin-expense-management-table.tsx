@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react"
 import type { ReactNode } from "react"
 import { useRouter } from "next/navigation"
-import { useSearchParams, usePathname } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { approveOrRejectExpense, markExpensePaid, verifyExpense } from "@/actions/expense"
 import { broadcastExpenseChange } from "@/lib/supabase/realtime"
 import { Input } from "@/components/ui/input"
@@ -27,7 +27,7 @@ interface ExpenseRow {
   mainHead: string
   description: string
   adminRemark: string | null
-  createdAt: Date | null
+  createdAt: Date | string | null
   amount: number
   expenseStatus: ExpenseStatus
   approvedByName: string | null
@@ -39,7 +39,6 @@ interface ExpenseRow {
 }
 
 interface AdminExpenseManagementTableProps {
-  members?: Array<{ id: string; name: string | null; email: string }>
   actorRole?: "ADMIN" | "SUPERVISOR" | "VERIFIER"
   showAllExpensesByDefault?: boolean
   totalReceivedAmount: number
@@ -60,7 +59,7 @@ interface AdminExpenseManagementTableProps {
     title: string
     description: string | null
     adminRemark?: string | null
-    createdAt: Date
+    createdAt: Date | string
     amount: number
     category: string
     status: ExpenseStatus
@@ -152,11 +151,9 @@ export function AdminExpenseManagementTable({
   afterCardsContent,
   collectionFunds,
   expenses,
-  members,
 }: AdminExpenseManagementTableProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const pathname = usePathname()
   const selectedMemberId = searchParams?.get("memberId") || ""
   const shouldShowReviewView = Boolean(selectedMemberId) || showAllExpensesByDefault
   const [searchTerm, setSearchTerm] = useState("")

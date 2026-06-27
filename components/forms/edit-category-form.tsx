@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import type { FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import { updateCategory } from "@/actions/category"
@@ -25,19 +25,9 @@ export function EditCategoryForm({ category, onCancel, onSuccess }: EditCategory
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const [formData, setFormData] = useState({
-    name: category.name,
-    subHead: category.subHead || "",
-    description: category.description || "",
-  })
-
-  useEffect(() => {
-    setFormData({
-      name: category.name,
-      subHead: category.subHead || "",
-      description: category.description || "",
-    })
-  }, [category])
+  const [name, setName] = useState(category.name)
+  const [subHead, setSubHead] = useState(category.subHead || "")
+  const [description, setDescription] = useState(category.description || "")
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -46,9 +36,9 @@ export function EditCategoryForm({ category, onCancel, onSuccess }: EditCategory
 
     const result = await updateCategory({
       categoryId: category.id,
-      name: formData.name,
-      subHead: formData.subHead,
-      description: formData.description,
+      name,
+      subHead,
+      description,
     })
 
     if (result?.error) {
@@ -85,8 +75,8 @@ export function EditCategoryForm({ category, onCancel, onSuccess }: EditCategory
               <Label htmlFor="edit-category-name">Category Name</Label>
               <Input
                 id="edit-category-name"
-                value={formData.name}
-                onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 required
               />
             </div>
@@ -95,8 +85,8 @@ export function EditCategoryForm({ category, onCancel, onSuccess }: EditCategory
               <Label htmlFor="edit-category-subhead">Subhead</Label>
               <Input
                 id="edit-category-subhead"
-                value={formData.subHead}
-                onChange={(e) => setFormData((prev) => ({ ...prev, subHead: e.target.value }))}
+                value={subHead}
+                onChange={(e) => setSubHead(e.target.value)}
                 placeholder="Optional subhead"
               />
             </div>
@@ -105,8 +95,8 @@ export function EditCategoryForm({ category, onCancel, onSuccess }: EditCategory
               <Label htmlFor="edit-category-description">Description</Label>
               <Input
                 id="edit-category-description"
-                value={formData.description}
-                onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
                 placeholder="Optional description"
               />
             </div>

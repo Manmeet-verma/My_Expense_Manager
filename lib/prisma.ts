@@ -23,6 +23,7 @@ function createPrismaClient() {
       connectionTimeoutMillis: 30_000,
       statement_timeout: 60_000,
       allowExitOnIdle: true,
+      ssl: { rejectUnauthorized: false },
     })
 
   if (!globalForPrisma.prismaPool) {

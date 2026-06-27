@@ -88,9 +88,9 @@ export async function getAllExpenses(memberId?: string) {
     return []
   }
 
-  const whereClause: any = memberId
+  const whereClause = memberId
     ? { createdById: memberId }
-    : { createdBy: { role: "MEMBER" } }
+    : { createdBy: { role: "MEMBER" as const } }
 
   return await prisma.expense.findMany({
     where: whereClause,

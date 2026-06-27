@@ -71,7 +71,6 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
           expenses={expenses}
           totalReceivedAmount={stats?.collectionAmount ?? 0}
           collectionFunds={collectionFunds}
-          members={members}
           afterCardsContent={
             <MembersContent
               members={members}

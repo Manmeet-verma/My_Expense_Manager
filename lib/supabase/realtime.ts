@@ -62,7 +62,7 @@ export async function broadcastExpenseChange(source: string) {
       window.setTimeout(() => {
         localStorage.removeItem("expense-updates")
       }, 50)
-    } catch (e) {
+    } catch {
       // ignore storage errors
     }
     return

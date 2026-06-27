@@ -40,6 +40,8 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
+        console.log("[auth] Attempting login for:", credentials.email)
+
         const normalizedEmail = (credentials.email as string).trim().toLowerCase()
 
         const user = await prisma.user.findFirst({

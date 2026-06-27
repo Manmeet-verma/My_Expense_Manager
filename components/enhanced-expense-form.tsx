@@ -27,8 +27,6 @@ interface EnhancedExpenseFormProps {
   collectionFrom?: string
 }
 export function EnhancedExpenseForm({
-  memberName,
-  budget,
   totalAmountUsed,
   categories,
   onSuccess,
