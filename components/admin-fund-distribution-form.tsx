@@ -7,7 +7,7 @@ import { broadcastExpenseChange } from "@/lib/supabase/realtime"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { DollarSign } from "lucide-react"
+import { DollarSign, Smartphone, Building2 } from "lucide-react"
 
 type Member = Awaited<ReturnType<typeof getAllMembers>>[number]
 
@@ -21,6 +21,8 @@ export function FundDistributionForm() {
   const [amount, setAmount] = useState("")
   const [description, setDescription] = useState("")
   const [paymentMode, setPaymentMode] = useState<"CASH" | "GPAY" | "BANK_ACCOUNT">("CASH")
+  const [upiId, setUpiId] = useState("")
+  const [accountNumber, setAccountNumber] = useState("")
 
   async function loadMembers() {
     const data = await getAllMembers()
@@ -47,6 +49,8 @@ export function FundDistributionForm() {
       amount: parseFloat(amount),
       description,
       paymentMode,
+      upiId: paymentMode === "GPAY" ? upiId : undefined,
+      accountNumber: paymentMode === "BANK_ACCOUNT" ? accountNumber : undefined,
     })
 
     if (result.error) {
@@ -65,6 +69,8 @@ export function FundDistributionForm() {
       setAmount("")
       setDescription("")
       setPaymentMode("CASH")
+      setUpiId("")
+      setAccountNumber("")
     }, 1500)
   }
 
@@ -144,7 +150,11 @@ export function FundDistributionForm() {
         <select
           id="paymentMode"
           value={paymentMode}
-          onChange={(e) => setPaymentMode(e.target.value as "CASH" | "GPAY" | "BANK_ACCOUNT")}
+          onChange={(e) => {
+            setPaymentMode(e.target.value as "CASH" | "GPAY" | "BANK_ACCOUNT")
+            setUpiId("")
+            setAccountNumber("")
+          }}
           className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
           required
         >
@@ -153,6 +163,40 @@ export function FundDistributionForm() {
           <option value="BANK_ACCOUNT">Bank Account</option>
         </select>
       </div>
+
+      {paymentMode === "GPAY" && (
+        <div>
+          <Label htmlFor="upiId" className="flex items-center gap-1">
+            <Smartphone className="h-4 w-4" /> GPay Account / UPI ID *
+          </Label>
+          <Input
+            id="upiId"
+            type="text"
+            value={upiId}
+            onChange={(e) => setUpiId(e.target.value)}
+            placeholder="e.g. name@upi"
+            required
+            className="mt-1"
+          />
+        </div>
+      )}
+
+      {paymentMode === "BANK_ACCOUNT" && (
+        <div>
+          <Label htmlFor="accountNumber" className="flex items-center gap-1">
+            <Building2 className="h-4 w-4" /> Bank Account Number *
+          </Label>
+          <Input
+            id="accountNumber"
+            type="text"
+            value={accountNumber}
+            onChange={(e) => setAccountNumber(e.target.value)}
+            placeholder="Enter bank account number"
+            required
+            className="mt-1"
+          />
+        </div>
+      )}
 
       <Button type="submit" disabled={loading} className="w-full">
         {loading ? "Transferring..." : "Fund Transfer"}

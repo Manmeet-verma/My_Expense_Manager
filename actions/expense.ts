@@ -637,6 +637,8 @@ const distributeFundSchema = z.object({
   amount: z.number().positive("Amount must be positive"),
   description: optionalStringSchema,
   paymentMode: z.enum(["CASH", "GPAY", "BANK_ACCOUNT"]),
+  upiId: optionalStringSchema,
+  accountNumber: optionalStringSchema,
 })
 
 const updateDistributedFundTransactionSchema = z.object({
@@ -692,7 +694,7 @@ export async function distributeFund(data: z.infer<typeof distributeFundSchema>)
     return { error: result.error.issues[0].message }
   }
 
-  const { memberId, amount, description, paymentMode } = result.data
+  const { memberId, amount, description, paymentMode, upiId, accountNumber } = result.data
 
   const member = await prisma.user.findFirst({
     where: {
@@ -726,6 +728,8 @@ export async function distributeFund(data: z.infer<typeof distributeFundSchema>)
         amount,
         receivedFrom,
         paymentMode,
+        upiId: paymentMode === "GPAY" ? upiId : null,
+        accountNumber: paymentMode === "BANK_ACCOUNT" ? accountNumber : null,
         fundDate: new Date(),
         userId: memberId,
       },
