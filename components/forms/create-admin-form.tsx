@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { Eye, EyeOff, X } from "lucide-react"
+import { Eye, EyeOff, Smartphone, Building2, X } from "lucide-react"
 
 interface CreateAdminFormProps {
   onSuccess?: () => void
@@ -33,6 +33,8 @@ export function CreateAdminForm({ onSuccess, onCancel }: CreateAdminFormProps) {
       fatherName: formData.get("fatherName") as string,
       aadhaarNo: formData.get("aadhaarNo") as string,
       password: formData.get("password") as string,
+      upiId: formData.get("upiId") as string || undefined,
+      accountNumber: formData.get("accountNumber") as string || undefined,
     }
 
     const result = await createAdmin(data)
@@ -113,6 +115,34 @@ export function CreateAdminForm({ onSuccess, onCancel }: CreateAdminFormProps) {
               required
             />
           </div>
+          <div className="border-t border-gray-100 pt-3">
+            <p className="text-sm font-medium text-gray-700 mb-3">Payment Details (Optional)</p>
+
+            <div className="space-y-2 mb-3">
+              <Label htmlFor="admin-upi-id" className="flex items-center gap-1">
+                <Smartphone className="h-4 w-4" /> GPay / UPI ID
+              </Label>
+              <Input
+                id="admin-upi-id"
+                name="upiId"
+                type="text"
+                placeholder="e.g. name@upi"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="admin-account-number" className="flex items-center gap-1">
+                <Building2 className="h-4 w-4" /> Bank Account Number
+              </Label>
+              <Input
+                id="admin-account-number"
+                name="accountNumber"
+                type="text"
+                placeholder="Enter bank account number"
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="admin-password">Password</Label>
             <div className="relative">

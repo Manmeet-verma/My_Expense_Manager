@@ -34,6 +34,8 @@ const signupSchema = z.object({
   fatherName: z.string().min(2, "Father's name must be at least 2 characters"),
   aadhaarNo: z.string().regex(/^\d{12}$/, "Aadhaar No must be exactly 12 digits"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  upiId: z.string().optional(),
+  accountNumber: z.string().optional(),
 })
 
 const createAdminSchema = z.object({
@@ -42,6 +44,8 @@ const createAdminSchema = z.object({
   fatherName: z.string().min(2, "Father's name must be at least 2 characters"),
   aadhaarNo: z.string().regex(/^\d{12}$/, "Aadhaar No must be exactly 12 digits"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  upiId: z.string().optional(),
+  accountNumber: z.string().optional(),
 })
 
 const createSupervisorSchema = z.object({
@@ -50,6 +54,8 @@ const createSupervisorSchema = z.object({
   fatherName: z.string().min(2, "Father's name must be at least 2 characters"),
   aadhaarNo: z.string().regex(/^\d{12}$/, "Aadhaar No must be exactly 12 digits"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  upiId: z.string().optional(),
+  accountNumber: z.string().optional(),
 })
 
 const changePasswordSchema = z.object({
@@ -127,6 +133,8 @@ const publicSignupSchema = z.object({
   fatherName: z.string().min(2, "Father's name must be at least 2 characters"),
   aadhaarNo: z.string().regex(/^\d{12}$/, "Aadhaar No must be exactly 12 digits"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  upiId: z.string().optional(),
+  accountNumber: z.string().optional(),
 })
 
 const verifyMemberPasswordSchema = z.object({
@@ -145,7 +153,7 @@ export async function signup(data: z.infer<typeof signupSchema>) {
     return { error: result.error.issues[0].message }
   }
 
-  const { email, name, fatherName, aadhaarNo, password } = result.data
+  const { email, name, fatherName, aadhaarNo, password, upiId, accountNumber } = result.data
   const normalizedEmail = email.trim().toLowerCase()
 
   const existingUser = await prisma.user.findUnique({
@@ -166,6 +174,8 @@ export async function signup(data: z.infer<typeof signupSchema>) {
       aadhaarNo,
       password: hashedPassword,
       role: "MEMBER",
+      upiId: upiId || null,
+      accountNumber: accountNumber || null,
     },
   })
 
@@ -183,7 +193,7 @@ export async function publicSignup(data: z.infer<typeof publicSignupSchema>) {
       return { error: result.error.issues[0].message }
     }
 
-    const { email, name, fatherName, aadhaarNo, password } = result.data
+  const { email, name, fatherName, aadhaarNo, password, upiId, accountNumber } = result.data
     const normalizedEmail = email.trim().toLowerCase()
 
     const existingUser = await prisma.user.findUnique({
@@ -204,6 +214,8 @@ export async function publicSignup(data: z.infer<typeof publicSignupSchema>) {
         aadhaarNo,
         password: hashedPassword,
         role: "MEMBER",
+        upiId: upiId || null,
+        accountNumber: accountNumber || null,
       },
     })
 
@@ -228,7 +240,7 @@ export async function createAdmin(data: z.infer<typeof createAdminSchema>) {
     return { error: result.error.issues[0].message }
   }
 
-  const { email, name, fatherName, aadhaarNo, password } = result.data
+  const { email, name, fatherName, aadhaarNo, password, upiId, accountNumber } = result.data
   const normalizedEmail = email.trim().toLowerCase()
 
   const existingUser = await prisma.user.findUnique({
@@ -249,6 +261,8 @@ export async function createAdmin(data: z.infer<typeof createAdminSchema>) {
       aadhaarNo,
       password: hashedPassword,
       role: "ADMIN",
+      upiId: upiId || null,
+      accountNumber: accountNumber || null,
     },
   })
 
@@ -428,7 +442,7 @@ export async function createSupervisor(data: z.infer<typeof createSupervisorSche
     return { error: result.error.issues[0].message }
   }
 
-  const { email, name, fatherName, aadhaarNo, password } = result.data
+  const { email, name, fatherName, aadhaarNo, password, upiId, accountNumber } = result.data
   const normalizedEmail = email.trim().toLowerCase()
 
   const existingUser = await prisma.user.findUnique({
@@ -449,6 +463,8 @@ export async function createSupervisor(data: z.infer<typeof createSupervisorSche
       aadhaarNo,
       password: hashedPassword,
       role: "SUPERVISOR",
+      upiId: upiId || null,
+      accountNumber: accountNumber || null,
     },
   })
 

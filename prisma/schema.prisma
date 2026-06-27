@@ -21,25 +21,27 @@ enum ExpenseStatus {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  name         String?
-  fatherName   String?
-  aadhaarNo    String?
-  password     String
-  role         Role      @default(MEMBER)
+  id              String    @id @default(cuid())
+  email           String    @unique
+  name            String?
+  fatherName      String?
+  aadhaarNo       String?
+  password        String
+  role            Role      @default(MEMBER)
   assignedProject String[] @default([])
   assignedVerifierIds String[] @default([])
   assignedVerifierId String?
-  assignedVerifier User? @relation("VerifierAssignments", fields: [assignedVerifierId], references: [id], onDelete: SetNull)
-  assignedInputters User[] @relation("VerifierAssignments")
-  totalBudget  Float     @default(0)
-  receivedAmount Float   @default(0)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  expenses     Expense[] @relation("ExpenseCreatedBy")
+  assignedVerifier User?    @relation("VerifierAssignments", fields: [assignedVerifierId], references: [id], onDelete: SetNull)
+  assignedInputters User[]  @relation("VerifierAssignments")
+  upiId           String?
+  accountNumber   String?
+  totalBudget     Float     @default(0)
+  receivedAmount  Float     @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  expenses        Expense[] @relation("ExpenseCreatedBy")
   approvedExpenses Expense[] @relation("ExpenseApprovedBy")
-  funds        Fund[]
+  funds           Fund[]
 }
 
 model Expense {
