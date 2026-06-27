@@ -354,7 +354,7 @@ export function AdminExpenseManagementTable({
       ledgerRows.map((row, index) => ({
           "Sr No": index + 1,
           "Inputter Name": row.expense?.inputterName || row.site,
-          "Project Name": row.expense?.assignedProject || row.site,
+          "Project Name": row.expense?.assignedProject || "-",
           Site: row.site,
           Category: row.category,
           "Main Head": row.mainHead,
@@ -693,7 +693,7 @@ export function AdminExpenseManagementTable({
                         className="h-8 min-w-[120px]"
                       />
                     ) : (
-                      row.expense?.assignedProject || row.site
+                      row.expense?.assignedProject || "-"
                     )}
                   </td>
                   <td className="px-4 py-3 text-gray-700">
