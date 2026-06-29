@@ -69,6 +69,8 @@ export function AdminSection({ admins, currentAdminId }: AdminSectionProps) {
             email: editingAdmin.email,
             fatherName: editingAdmin.fatherName,
             aadhaarNo: editingAdmin.aadhaarNo,
+            upiId: editingAdmin.upiId,
+            accountNumber: editingAdmin.accountNumber,
             roleLabel: "Admin",
           }}
           onCancel={() => setEditingAdmin(null)}

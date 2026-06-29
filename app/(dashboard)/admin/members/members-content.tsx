@@ -438,6 +438,8 @@ export default function MembersContent({
                 email: editingMember.email,
                 fatherName: editingMember.fatherName,
                 aadhaarNo: editingMember.aadhaarNo,
+                upiId: editingMember.upiId,
+                accountNumber: editingMember.accountNumber,
                 roleLabel: "Inputter",
               }}
               onCancel={() => setEditingMember(null)}

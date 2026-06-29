@@ -89,6 +89,8 @@ export function SupervisorSection({ supervisors }: SupervisorSectionProps) {
             email: editingSupervisor.email,
             fatherName: editingSupervisor.fatherName,
             aadhaarNo: editingSupervisor.aadhaarNo,
+            upiId: editingSupervisor.upiId,
+            accountNumber: editingSupervisor.accountNumber,
             roleLabel: "Verifier",
           }}
           onCancel={() => setEditingSupervisor(null)}

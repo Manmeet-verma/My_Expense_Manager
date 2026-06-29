@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { X } from "lucide-react"
+import { Smartphone, Building2, X } from "lucide-react"
 
 interface EditAccountFormProps {
   account: {
@@ -17,6 +17,8 @@ interface EditAccountFormProps {
     email: string
     fatherName: string | null
     aadhaarNo: string | null
+    upiId?: string | null
+    accountNumber?: string | null
     roleLabel: string
   }
   onCancel: () => void
@@ -31,6 +33,8 @@ export function EditAccountForm({ account, onCancel, onSuccess }: EditAccountFor
   const [email, setEmail] = useState(account.email || "")
   const [fatherName, setFatherName] = useState(account.fatherName || "")
   const [aadhaarNo, setAadhaarNo] = useState(account.aadhaarNo || "")
+  const [upiId, setUpiId] = useState(account.upiId || "")
+  const [accountNumber, setAccountNumber] = useState(account.accountNumber || "")
   const [newPassword, setNewPassword] = useState("")
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
@@ -44,6 +48,8 @@ export function EditAccountForm({ account, onCancel, onSuccess }: EditAccountFor
       email,
       fatherName,
       aadhaarNo,
+      upiId,
+      accountNumber,
       newPassword,
     })
 
@@ -117,6 +123,30 @@ export function EditAccountForm({ account, onCancel, onSuccess }: EditAccountFor
                 value={aadhaarNo}
                 onChange={(e) => setAadhaarNo(e.target.value)}
                 required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-upi" className="flex items-center gap-1">
+                <Smartphone className="h-4 w-4" /> GPay / UPI
+              </Label>
+              <Input
+                id="edit-upi"
+                value={upiId}
+                onChange={(e) => setUpiId(e.target.value)}
+                placeholder="e.g. name@upi"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-account" className="flex items-center gap-1">
+                <Building2 className="h-4 w-4" /> Bank Account
+              </Label>
+              <Input
+                id="edit-account"
+                value={accountNumber}
+                onChange={(e) => setAccountNumber(e.target.value)}
+                placeholder="e.g. 1234567890"
               />
             </div>
 

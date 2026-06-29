@@ -13,6 +13,8 @@ type MemberRow = {
   fatherName: string | null
   aadhaarNo: string | null
   email: string
+  upiId: string | null
+  accountNumber: string | null
   createdAt: Date
   _count: {
     expenses: number

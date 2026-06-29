@@ -91,6 +91,8 @@ const updateAccountSchema = z.object({
   fatherName: z.string().min(2, "Father's name must be at least 2 characters"),
   aadhaarNo: z.string().regex(/^\d{12}$/, "Aadhaar No must be exactly 12 digits"),
   newPassword: z.string().min(6, "Password must be at least 6 characters").optional().or(z.literal("")),
+  upiId: z.string().optional().or(z.literal("")),
+  accountNumber: z.string().optional().or(z.literal("")),
 })
 
 const assignMemberSchema = z.object({
@@ -1034,7 +1036,7 @@ export async function updateAccount(data: z.infer<typeof updateAccountSchema>) {
     return { error: result.error.issues[0].message }
   }
 
-  const { userId, name, email, fatherName, aadhaarNo, newPassword } = result.data
+  const { userId, name, email, fatherName, aadhaarNo, newPassword, upiId, accountNumber } = result.data
   const normalizedEmail = email.trim().toLowerCase()
 
   const existingUser = await prisma.user.findUnique({
@@ -1061,11 +1063,20 @@ export async function updateAccount(data: z.infer<typeof updateAccountSchema>) {
     fatherName: string
     aadhaarNo: string
     password?: string
+    upiId?: string | null
+    accountNumber?: string | null
   } = {
     name: name.trim(),
     email: normalizedEmail,
     fatherName: fatherName.trim(),
     aadhaarNo: aadhaarNo.trim(),
+  }
+
+  if (upiId !== undefined) {
+    dataToUpdate.upiId = upiId.trim() || null
+  }
+  if (accountNumber !== undefined) {
+    dataToUpdate.accountNumber = accountNumber.trim() || null
   }
 
   if (newPassword && newPassword.trim()) {

@@ -13,6 +13,8 @@ type MemberRow = {
   fatherName: string | null
   aadhaarNo: string | null
   email: string
+  upiId: string | null
+  accountNumber: string | null
   createdAt: Date
   _count: {
     expenses: number
@@ -60,6 +62,8 @@ export function MemberPasswordCard({ member }: { member: MemberRow }) {
             email: member.email,
             fatherName: member.fatherName || "",
             aadhaarNo: member.aadhaarNo || "",
+            upiId: member.upiId,
+            accountNumber: member.accountNumber,
             roleLabel: "Inputter",
           }}
           onCancel={() => setEditing(false)}
