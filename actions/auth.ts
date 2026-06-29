@@ -638,6 +638,8 @@ export async function getMembers(): Promise<{
   fatherName: string | null
   aadhaarNo: string | null
   email: string
+  upiId: string | null
+  accountNumber: string | null
   assignedProject: string[]
   assignedVerifierIds: string[]
   assignedVerifierId: string | null
@@ -672,6 +674,8 @@ export async function getMembers(): Promise<{
       fatherName: true,
       aadhaarNo: true,
       email: true,
+      upiId: true,
+      accountNumber: true,
       assignedProject: true,
       assignedVerifierIds: true,
       assignedVerifierId: true,
@@ -704,6 +708,8 @@ export async function getMembers(): Promise<{
     fatherName: member.fatherName,
     aadhaarNo: member.aadhaarNo,
     email: member.email,
+    upiId: member.upiId,
+    accountNumber: member.accountNumber,
     assignedProject: Array.isArray(member.assignedProject)
       ? member.assignedProject
       : member.assignedProject
@@ -864,6 +870,8 @@ export async function getAdmins() {
       fatherName: true,
       aadhaarNo: true,
       email: true,
+      upiId: true,
+      accountNumber: true,
       createdAt: true,
     },
     orderBy: { createdAt: "asc" },
@@ -885,6 +893,8 @@ export async function getSupervisors() {
       fatherName: true,
       aadhaarNo: true,
       email: true,
+      upiId: true,
+      accountNumber: true,
       createdAt: true,
     },
     orderBy: { createdAt: "asc" },

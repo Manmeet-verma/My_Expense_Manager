@@ -17,6 +17,8 @@ interface MemberRow {
   fatherName: string | null
   aadhaarNo: string | null
   email: string
+  upiId: string | null
+  accountNumber: string | null
   assignedProject: string[] | null
   receivedAmount: number
   totalEdits: number
@@ -471,6 +473,8 @@ export default function MembersContent({
                   <th className="px-4 py-3 font-semibold">Name</th>
                   <th className="px-4 py-3 font-semibold">Father&apos;s Name</th>
                   <th className="px-4 py-3 font-semibold">Aadhaar No.</th>
+                  <th className="px-4 py-3 font-semibold">GPay / UPI</th>
+                  <th className="px-4 py-3 font-semibold">Bank Account</th>
                   <th className="px-4 py-3 font-semibold">Email</th>
                   <th className="px-4 py-3 font-semibold">Assigned Project</th>
                   <th className="px-4 py-3 font-semibold">Expenses</th>
@@ -483,7 +487,7 @@ export default function MembersContent({
               <tbody>
                 {filteredMembers.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="px-4 py-10 text-center text-gray-500">
+                    <td colSpan={12} className="px-4 py-10 text-center text-gray-500">
                       No inputters found
                     </td>
                   </tr>
@@ -500,6 +504,8 @@ export default function MembersContent({
                       </td>
                       <td className="px-4 py-3 text-gray-700">{member.fatherName || "-"}</td>
                       <td className="px-4 py-3 text-gray-700">{member.aadhaarNo || "-"}</td>
+                      <td className="px-4 py-3 text-gray-700">{member.upiId || "-"}</td>
+                      <td className="px-4 py-3 text-gray-700">{member.accountNumber || "-"}</td>
                       <td className="px-4 py-3 text-gray-700">{member.email}</td>
                       <td className="px-4 py-3 text-gray-700 font-medium">{formatAssignedProjects(member.assignedProject) || "-"}</td>
                       <td className="px-4 py-3 text-gray-700">{member._count.expenses}</td>
@@ -615,6 +621,24 @@ export default function MembersContent({
                   sheetName="InputterData"
                   label="Export Current View"
                 />
+                {canManage && (
+                  <>
+                    <button
+                      onClick={() => setEditingMember(selectedMember)}
+                      className="text-sm text-blue-600 hover:text-blue-800 border border-blue-200 rounded px-3 py-1.5"
+                    >
+                      <Pencil className="inline-block h-4 w-4 mr-1" />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(selectedMember.id)}
+                      disabled={deletingId === selectedMember.id}
+                      className="text-sm text-red-600 hover:text-red-800 border border-red-200 rounded px-3 py-1.5 disabled:opacity-50"
+                    >
+                      {deletingId === selectedMember.id ? "Deleting..." : "Delete"}
+                    </button>
+                  </>
+                )}
                 <button
                   onClick={() => setSelectedMember(null)}
                   className="text-sm text-gray-600 hover:text-gray-900"

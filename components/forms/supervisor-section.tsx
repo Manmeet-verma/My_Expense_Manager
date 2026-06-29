@@ -15,6 +15,8 @@ type Supervisor = {
   fatherName: string | null
   aadhaarNo: string | null
   email: string
+  upiId: string | null
+  accountNumber: string | null
   createdAt: Date
 }
 
@@ -156,6 +158,8 @@ export function SupervisorSection({ supervisors }: SupervisorSectionProps) {
                     <th className="px-4 py-3 font-semibold">Name</th>
                     <th className="px-4 py-3 font-semibold">Father&apos;s Name</th>
                     <th className="px-4 py-3 font-semibold">Aadhaar No.</th>
+                    <th className="px-4 py-3 font-semibold">GPay / UPI</th>
+                    <th className="px-4 py-3 font-semibold">Bank Account</th>
                     <th className="px-4 py-3 font-semibold">Email</th>
                     <th className="px-4 py-3 font-semibold">Created</th>
                     <th className="px-4 py-3 font-semibold">Actions</th>
@@ -167,6 +171,8 @@ export function SupervisorSection({ supervisors }: SupervisorSectionProps) {
                       <td className="px-4 py-3 font-medium text-gray-900">{supervisor.name || "N/A"}</td>
                       <td className="px-4 py-3 text-gray-700">{supervisor.fatherName || "N/A"}</td>
                       <td className="px-4 py-3 text-gray-700">{supervisor.aadhaarNo || "N/A"}</td>
+                      <td className="px-4 py-3 text-gray-700">{supervisor.upiId || "-"}</td>
+                      <td className="px-4 py-3 text-gray-700">{supervisor.accountNumber || "-"}</td>
                       <td className="px-4 py-3 text-gray-700">{supervisor.email}</td>
                       <td className="px-4 py-3 text-gray-700">{formatDate(supervisor.createdAt)}</td>
                       <td className="px-4 py-3">

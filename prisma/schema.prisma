@@ -42,6 +42,7 @@ model User {
   expenses        Expense[] @relation("ExpenseCreatedBy")
   approvedExpenses Expense[] @relation("ExpenseApprovedBy")
   funds           Fund[]
+  approvedFunds   Fund[]    @relation("FundApprovedBy")
 }
 
 model Expense {
@@ -69,6 +70,12 @@ enum PaymentMode {
   BANK_ACCOUNT
 }
 
+enum FundStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model Fund {
   id            String      @id @default(cuid())
   amount        Float
@@ -77,6 +84,10 @@ model Fund {
   upiId         String?
   accountNumber String?
   fundDate      DateTime    @default(now())
+  status        FundStatus  @default(APPROVED)
+  approvedById  String?
+  approvedBy    User?       @relation("FundApprovedBy", fields: [approvedById], references: [id])
+  approvedAt    DateTime?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   userId        String

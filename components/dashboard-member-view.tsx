@@ -33,6 +33,8 @@ interface MemberStats {
   approved: number
   rejected: number
   paid?: number
+  pendingAmount?: number
+  rejectedAmount?: number
   totalApprovedAmount: number
   totalPaidAmount?: number
   collectionAmount?: number

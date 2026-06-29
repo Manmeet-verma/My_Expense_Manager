@@ -20,7 +20,7 @@ function getMemberPaymentDetails(members: Member[], memberId: string) {
   }
 }
 
-export function FundDistributionForm() {
+export function VerifierFundTransferForm() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -42,7 +42,7 @@ export function FundDistributionForm() {
     return (
       <div className="text-center py-8">
         <Button onClick={loadMembers} variant="outline">
-          Load Inputters
+          Load My Inputters
         </Button>
       </div>
     )
@@ -91,7 +91,7 @@ export function FundDistributionForm() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <p className="text-green-600 font-medium">Fund transferred successfully!</p>
+        <p className="text-green-600 font-medium">Transfer request submitted! Awaiting admin approval.</p>
       </div>
     )
   }
@@ -214,7 +214,7 @@ export function FundDistributionForm() {
       )}
 
       <Button type="submit" disabled={loading} className="w-full">
-        {loading ? "Transferring..." : "Fund Transfer"}
+        {loading ? "Submitting..." : "Submit Fund Transfer"}
       </Button>
     </form>
   )

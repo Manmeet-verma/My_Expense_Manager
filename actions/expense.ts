@@ -654,6 +654,7 @@ const deleteDistributedFundTransactionSchema = z.object({
 })
 
 const ADMIN_DISTRIBUTION_PREFIX = "Admin Distribution"
+const VERIFIER_DISTRIBUTION_PREFIX = "Verifier Distribution"
 
 function buildDistributionReceivedFrom(source: string, description?: string) {
   const normalizedDescription = description?.trim()
@@ -675,6 +676,7 @@ function revalidateDistributionPaths() {
   revalidatePath("/admin/dashboard")
   revalidatePath("/dashboard/my-statement")
   revalidatePath("/dashboard/statement")
+  revalidatePath("/verifier/fund-transfer")
 }
 
 export async function distributeFund(data: z.infer<typeof distributeFundSchema>) {
@@ -684,8 +686,8 @@ export async function distributeFund(data: z.infer<typeof distributeFundSchema>)
     return { error: "Unauthorized" }
   }
 
-  if (session.user.role !== "ADMIN") {
-    return { error: "Only admins can distribute funds" }
+  if (session.user.role !== "ADMIN" && session.user.role !== "VERIFIER" && session.user.role !== "SUPERVISOR") {
+    return { error: "Only admins and verifiers can distribute funds" }
   }
 
   const result = distributeFundSchema.safeParse(data)
@@ -711,30 +713,142 @@ export async function distributeFund(data: z.infer<typeof distributeFundSchema>)
   }
 
   const distributedBy = session.user.name || session.user.email
-  const source = `${ADMIN_DISTRIBUTION_PREFIX}: ${distributedBy}`
+  const isAdmin = session.user.role === "ADMIN"
+  const prefix = isAdmin ? ADMIN_DISTRIBUTION_PREFIX : VERIFIER_DISTRIBUTION_PREFIX
+  const source = `${prefix}: ${distributedBy}`
   const receivedFrom = buildDistributionReceivedFrom(source, description)
+  const status = isAdmin ? "APPROVED" : "PENDING"
+
+  const dataToCreate: any = {
+    amount,
+    receivedFrom,
+    paymentMode,
+    upiId: paymentMode === "GPAY" ? upiId : null,
+    accountNumber: paymentMode === "BANK_ACCOUNT" ? accountNumber : null,
+    fundDate: new Date(),
+    status,
+    userId: memberId,
+  }
+
+  if (isAdmin) {
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: memberId },
+        data: {
+          receivedAmount: {
+            increment: amount,
+          },
+        },
+      }),
+      prisma.fund.create({ data: dataToCreate }),
+    ])
+  } else {
+    await prisma.fund.create({ data: dataToCreate })
+  }
+
+  revalidateDistributionPaths()
+  return { success: true }
+}
+
+const approveFundTransferSchema = z.object({
+  transactionId: z.string().min(1, "Transaction ID is required"),
+})
+
+export async function approvePendingFundTransfer(data: z.infer<typeof approveFundTransferSchema>) {
+  const session = await auth()
+
+  if (!session?.user || session.user.role !== "ADMIN") {
+    return { error: "Only admins can approve fund transfers" }
+  }
+
+  const result = approveFundTransferSchema.safeParse(data)
+
+  if (!result.success) {
+    return { error: result.error.issues[0].message }
+  }
+
+  const { transactionId } = result.data
+
+  const transaction = await prisma.fund.findUnique({
+    where: { id: transactionId },
+    select: {
+      id: true,
+      status: true,
+      amount: true,
+      userId: true,
+    },
+  })
+
+  if (!transaction) {
+    return { error: "Transaction not found" }
+  }
+
+  if (transaction.status !== "PENDING") {
+    return { error: "Only pending transactions can be approved" }
+  }
 
   await prisma.$transaction([
     prisma.user.update({
-      where: { id: memberId },
+      where: { id: transaction.userId },
       data: {
         receivedAmount: {
-          increment: amount,
+          increment: transaction.amount,
         },
       },
     }),
-    prisma.fund.create({
+    prisma.fund.update({
+      where: { id: transactionId },
       data: {
-        amount,
-        receivedFrom,
-        paymentMode,
-        upiId: paymentMode === "GPAY" ? upiId : null,
-        accountNumber: paymentMode === "BANK_ACCOUNT" ? accountNumber : null,
-        fundDate: new Date(),
-        userId: memberId,
+        status: "APPROVED",
+        approvedById: session.user.id,
+        approvedAt: new Date(),
       },
     }),
   ])
+
+  revalidateDistributionPaths()
+  return { success: true }
+}
+
+export async function rejectPendingFundTransfer(data: z.infer<typeof approveFundTransferSchema>) {
+  const session = await auth()
+
+  if (!session?.user || session.user.role !== "ADMIN") {
+    return { error: "Only admins can reject fund transfers" }
+  }
+
+  const result = approveFundTransferSchema.safeParse(data)
+
+  if (!result.success) {
+    return { error: result.error.issues[0].message }
+  }
+
+  const { transactionId } = result.data
+
+  const transaction = await prisma.fund.findUnique({
+    where: { id: transactionId },
+    select: {
+      id: true,
+      status: true,
+    },
+  })
+
+  if (!transaction) {
+    return { error: "Transaction not found" }
+  }
+
+  if (transaction.status !== "PENDING") {
+    return { error: "Only pending transactions can be rejected" }
+  }
+
+  await prisma.fund.update({
+    where: { id: transactionId },
+    data: {
+      status: "REJECTED",
+      approvedById: session.user.id,
+      approvedAt: new Date(),
+    },
+  })
 
   revalidateDistributionPaths()
   return { success: true }
@@ -782,8 +896,8 @@ export async function updateDistributedFundTransaction(
     return { error: "Transaction not found" }
   }
 
-  if (!transaction.receivedFrom.startsWith(ADMIN_DISTRIBUTION_PREFIX)) {
-    return { error: "Only admin distribution transactions can be edited" }
+  if (!transaction.receivedFrom.startsWith(ADMIN_DISTRIBUTION_PREFIX) && !transaction.receivedFrom.startsWith(VERIFIER_DISTRIBUTION_PREFIX)) {
+    return { error: "Only distribution transactions can be edited" }
   }
 
   const amountDelta = amount - transaction.amount
@@ -846,8 +960,8 @@ export async function deleteDistributedFundTransaction(
     return { error: "Transaction not found" }
   }
 
-  if (!transaction.receivedFrom.startsWith(ADMIN_DISTRIBUTION_PREFIX)) {
-    return { error: "Only admin distribution transactions can be deleted" }
+  if (!transaction.receivedFrom.startsWith(ADMIN_DISTRIBUTION_PREFIX) && !transaction.receivedFrom.startsWith(VERIFIER_DISTRIBUTION_PREFIX)) {
+    return { error: "Only distribution transactions can be deleted" }
   }
 
   await prisma.$transaction([
@@ -884,7 +998,107 @@ export async function getDistributedFundTransactions() {
       amount: true,
       receivedFrom: true,
       paymentMode: true,
+      upiId: true,
+      accountNumber: true,
       fundDate: true,
+      status: true,
+      approvedAt: true,
+      createdAt: true,
+      user: {
+        select: {
+          name: true,
+          email: true,
+          upiId: true,
+          accountNumber: true,
+        },
+      },
+      approvedBy: {
+        select: {
+          name: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 100,
+  })
+  .then((transactions) =>
+    transactions.map((transaction) => ({
+      ...transaction,
+      description: parseDistributionDescription(transaction.receivedFrom),
+    }))
+  )
+}
+
+export async function getPendingFundTransfers() {
+  const session = await auth()
+
+  if (!session?.user || session.user.role !== "ADMIN") {
+    return []
+  }
+
+  return await prisma.fund.findMany({
+    where: {
+      status: "PENDING",
+      receivedFrom: {
+        startsWith: VERIFIER_DISTRIBUTION_PREFIX,
+      },
+    },
+    select: {
+      id: true,
+      amount: true,
+      receivedFrom: true,
+      paymentMode: true,
+      upiId: true,
+      accountNumber: true,
+      fundDate: true,
+      createdAt: true,
+      user: {
+        select: {
+          name: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 100,
+  })
+  .then((transactions) =>
+    transactions.map((transaction) => ({
+      ...transaction,
+      description: parseDistributionDescription(transaction.receivedFrom),
+    }))
+  )
+}
+
+export async function getVerifierDistributionTransactions() {
+  const session = await auth()
+
+  if (!session?.user || (session.user.role !== "VERIFIER" && session.user.role !== "SUPERVISOR")) {
+    return []
+  }
+
+  const verifierName = session.user.name || session.user.email
+  const prefix = `${VERIFIER_DISTRIBUTION_PREFIX}: ${verifierName}`
+
+  return await prisma.fund.findMany({
+    where: {
+      receivedFrom: {
+        startsWith: prefix,
+      },
+    },
+    select: {
+      id: true,
+      amount: true,
+      receivedFrom: true,
+      paymentMode: true,
+      upiId: true,
+      accountNumber: true,
+      fundDate: true,
+      status: true,
       createdAt: true,
       user: {
         select: {
@@ -913,16 +1127,24 @@ export async function getAllMembers() {
     return []
   }
 
-  if (session.user.role !== "ADMIN") {
+  if (session.user.role !== "ADMIN" && session.user.role !== "VERIFIER" && session.user.role !== "SUPERVISOR") {
     return []
   }
 
+  const memberFilter: any = { role: "MEMBER" }
+
+  if (session.user.role === "VERIFIER" || session.user.role === "SUPERVISOR") {
+    memberFilter.assignedVerifierId = session.user.id
+  }
+
   return await prisma.user.findMany({
-    where: { role: "MEMBER" },
+    where: memberFilter,
     select: {
       id: true,
       name: true,
       email: true,
+      upiId: true,
+      accountNumber: true,
       receivedAmount: true,
     },
     orderBy: { name: "asc" },

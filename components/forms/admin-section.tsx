@@ -14,6 +14,8 @@ type Admin = {
   fatherName: string | null
   aadhaarNo: string | null
   email: string
+  upiId: string | null
+  accountNumber: string | null
   createdAt: Date
 }
 
@@ -143,6 +145,8 @@ export function AdminSection({ admins, currentAdminId }: AdminSectionProps) {
                     <th className="px-4 py-3 font-semibold">Name</th>
                     <th className="px-4 py-3 font-semibold">Father&apos;s Name</th>
                     <th className="px-4 py-3 font-semibold">Aadhaar No.</th>
+                    <th className="px-4 py-3 font-semibold">GPay / UPI</th>
+                    <th className="px-4 py-3 font-semibold">Bank Account</th>
                     <th className="px-4 py-3 font-semibold">Email</th>
                     <th className="px-4 py-3 font-semibold">Created</th>
                     <th className="px-4 py-3 font-semibold">Delete</th>
@@ -159,6 +163,8 @@ export function AdminSection({ admins, currentAdminId }: AdminSectionProps) {
                       </td>
                       <td className="px-4 py-3 text-gray-700">{admin.fatherName || "N/A"}</td>
                       <td className="px-4 py-3 text-gray-700">{admin.aadhaarNo || "N/A"}</td>
+                      <td className="px-4 py-3 text-gray-700">{admin.upiId || "-"}</td>
+                      <td className="px-4 py-3 text-gray-700">{admin.accountNumber || "-"}</td>
                       <td className="px-4 py-3 text-gray-700">{admin.email}</td>
                       <td className="px-4 py-3 text-gray-700">{formatDate(admin.createdAt)}</td>
                       <td className="px-4 py-3">

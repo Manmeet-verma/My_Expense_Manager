@@ -29,55 +29,87 @@ export function StatsCards({ stats, mode = "member", activeStatus, onSelectStatu
   const collectionAmount = stats.collectionAmount ?? stats.totalBudget ?? 0
   const remainingCollection = collectionAmount - totalExpenseAmount
 
+  const openingBalance = stats.totalBudget ?? 0
+  const totalExpenseRequested = stats.submittedAmount ?? 0
+  const rejectedFund = stats.rejectedAmount ?? 0
+  const verifiedFund = stats.totalApprovedAmount ?? 0
+  const approvedFund = stats.totalApprovedAmount ?? 0
+  const totalFundReceived = stats.collectionAmount ?? 0
+  const totalFundPaid = stats.totalPaidAmount ?? 0
+  const unapprovedFund = Math.max(0, openingBalance - totalExpenseRequested)
+  const balanceReceivable = Math.max(0, openingBalance - totalExpenseRequested - totalFundReceived)
+  const closingBalance = openingBalance + totalFundReceived - totalFundPaid
+
   const memberCards = [
     {
-      title: "Total Expense Requested",
-      value: formatCurrency(totalExpenseAmount),
-      icon: TrendingUp,
+      title: "Opening Balance",
+      value: formatCurrency(openingBalance),
+      icon: DollarSign,
       color: "text-blue-600",
       bgColor: "bg-blue-50",
     },
     {
-      title: "Received Fund",
-      value: formatCurrency(collectionAmount),
-      icon: DollarSign,
-      color: "text-indigo-600",
-      bgColor: "bg-indigo-50",
+      title: "Total Expense Requested",
+      value: formatCurrency(totalExpenseRequested),
+      icon: TrendingUp,
+      color: "text-orange-600",
+      bgColor: "bg-orange-50",
     },
     {
-      title: "Fund Receivable",
-      value: formatCurrency(remainingCollection),
-      icon: DollarSign,
-      color: "text-emerald-600",
-      bgColor: "bg-emerald-50",
-    },
-    {
-      title: "Approved",
-      value: formatCurrency(stats.totalApprovedAmount),
-      icon: CheckCircle,
-      color: "text-green-600",
-      bgColor: "bg-green-50",
-    },
-    {
-      title: "Pending",
-      value: formatCurrency(stats.pendingAmount ?? 0),
-      icon: Clock,
-      color: "text-yellow-600",
-      bgColor: "bg-yellow-50",
-    },
-    {
-      title: "Rejected",
-      value: formatCurrency(stats.rejectedAmount ?? 0),
+      title: "Rejected Fund",
+      value: formatCurrency(rejectedFund),
       icon: XCircle,
       color: "text-red-600",
       bgColor: "bg-red-50",
     },
     {
-      title: "Paid",
-      value: formatCurrency(stats.totalPaidAmount ?? 0),
+      title: "Verified Fund",
+      value: formatCurrency(verifiedFund),
+      icon: CheckCircle,
+      color: "text-green-600",
+      bgColor: "bg-green-50",
+    },
+    {
+      title: "Approved Fund",
+      value: formatCurrency(approvedFund),
+      icon: CheckCircle,
+      color: "text-emerald-600",
+      bgColor: "bg-emerald-50",
+    },
+    {
+      title: "Unverified / Unapproved Fund",
+      value: formatCurrency(unapprovedFund),
+      icon: Clock,
+      color: "text-yellow-600",
+      bgColor: "bg-yellow-50",
+    },
+    {
+      title: "Total Fund Received",
+      value: formatCurrency(totalFundReceived),
       icon: DollarSign,
+      color: "text-indigo-600",
+      bgColor: "bg-indigo-50",
+    },
+    {
+      title: "Total Fund Paid",
+      value: formatCurrency(totalFundPaid),
+      icon: TrendingUp,
       color: "text-teal-600",
       bgColor: "bg-teal-50",
+    },
+    {
+      title: "Balance Receivable",
+      value: formatCurrency(balanceReceivable),
+      icon: DollarSign,
+      color: "text-purple-600",
+      bgColor: "bg-purple-50",
+    },
+    {
+      title: "Closing Balance",
+      value: formatCurrency(closingBalance),
+      icon: DollarSign,
+      color: "text-cyan-600",
+      bgColor: "bg-cyan-50",
     },
   ]
 
@@ -137,20 +169,18 @@ export function StatsCards({ stats, mode = "member", activeStatus, onSelectStatu
   const gridClass =
     mode === "admin"
       ? "grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
-      : "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+      : "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
   const handleClick = useCallback(
     (title: string) => {
       if (!onSelectStatus) return
-      // Map certain titles to statuses
       const mapping: Record<string, string> = {
-        "Received Fund": "COLLECTION",
-        "Approved": "APPROVED",
-        Pending: "PENDING",
-        Rejected: "REJECTED",
-        Paid: "PAID",
+        "Total Fund Received": "COLLECTION",
+        "Approved Fund": "APPROVED",
+        "Rejected Fund": "REJECTED",
+        "Unverified / Unapproved Fund": "PENDING",
+        "Total Fund Paid": "PAID",
       }
       const mapped = mapping[title] || "ALL"
-      // toggle: if already active, clear to ALL
       if (activeStatus === mapped) {
         onSelectStatus("ALL")
       } else {
@@ -164,11 +194,11 @@ export function StatsCards({ stats, mode = "member", activeStatus, onSelectStatu
     <div className={gridClass}>
       {cards.map((card) => {
         const mapped = {
-          "Received Fund": "COLLECTION",
-          "Approved": "APPROVED",
-          Pending: "PENDING",
-          Rejected: "REJECTED",
-          Paid: "PAID",
+          "Total Fund Received": "COLLECTION",
+          "Approved Fund": "APPROVED",
+          "Rejected Fund": "REJECTED",
+          "Unverified / Unapproved Fund": "PENDING",
+          "Total Fund Paid": "PAID",
         }[card.title] || "ALL"
         const isActive = activeStatus === mapped
         return (

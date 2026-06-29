@@ -21,6 +21,7 @@ export function Navigation({ user }: NavProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const isAdmin = user.role === "ADMIN"
   const isSupervisor = user.role === "SUPERVISOR"
+  const isVerifier = user.role === "VERIFIER" || isSupervisor
   const isAdminOrSupervisor = isAdmin || isSupervisor
   const roleLabel = user.role === "SUPERVISOR" ? "VERIFIER" : user.role === "MEMBER" ? "INPUTTER" : user.role
 
@@ -84,6 +85,12 @@ export function Navigation({ user }: NavProps) {
       label: "Fund Transfer",
       icon: Wallet,
       visible: user.role === "ADMIN",
+    },
+    {
+      href: "/verifier/fund-transfer",
+      label: "Fund Transfer",
+      icon: Wallet,
+      visible: isVerifier,
     },
     {
       href: "/admin/add-category",

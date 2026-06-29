@@ -2,7 +2,8 @@ import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { FundDistributionForm } from "@/components/admin-fund-distribution-form"
 import { AdminDistributionTransactionsTable } from "@/components/admin-distribution-transactions-table"
-import { getDistributedFundTransactions } from "@/actions/expense"
+import { AdminPendingTransfersTable } from "@/components/admin-pending-transfers-table"
+import { getDistributedFundTransactions, getPendingFundTransfers } from "@/actions/expense"
 
 export default async function FundDistributionPage() {
   let session = null
@@ -21,7 +22,10 @@ export default async function FundDistributionPage() {
     redirect("/dashboard")
   }
 
-  const transactions = await getDistributedFundTransactions()
+  const [transactions, pendingTransfers] = await Promise.all([
+    getDistributedFundTransactions(),
+    getPendingFundTransfers(),
+  ])
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6">
@@ -30,10 +34,22 @@ export default async function FundDistributionPage() {
         <p className="text-gray-600 mt-1">Transfer fund to inputters from the admin account</p>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-6">
         <div className="mx-auto w-full max-w-3xl rounded-lg border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
           <FundDistributionForm />
         </div>
+
+        {pendingTransfers.length > 0 && (
+          <div className="w-full rounded-lg border border-amber-200 bg-amber-50">
+            <div className="border-b border-amber-100 px-4 py-3">
+              <h2 className="text-lg font-semibold text-amber-900">Pending Verifier Transfers</h2>
+              <p className="text-sm text-amber-700 mt-0.5">Approve or reject fund transfer requests from verifiers</p>
+            </div>
+            <div className="p-4">
+              <AdminPendingTransfersTable transactions={pendingTransfers} />
+            </div>
+          </div>
+        )}
 
         <div className="w-full rounded-lg border border-gray-200 bg-white">
           <div className="border-b border-gray-100 px-4 py-3">

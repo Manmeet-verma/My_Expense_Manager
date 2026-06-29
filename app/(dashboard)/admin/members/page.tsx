@@ -9,6 +9,8 @@ type MemberRow = {
   fatherName: string | null
   aadhaarNo: string | null
   email: string
+  upiId: string | null
+  accountNumber: string | null
   assignedProject: string[] | null
   receivedAmount: number
   totalEdits: number

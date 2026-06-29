@@ -16,11 +16,15 @@ type Transaction = {
   amount: number
   description?: string | null
   paymentMode: "CASH" | "GPAY" | "BANK_ACCOUNT"
+  upiId: string | null
+  accountNumber: string | null
   fundDate: Date | string
   createdAt: Date | string
   user: {
     name: string | null
     email: string
+    upiId: string | null
+    accountNumber: string | null
   }
 }
 
@@ -45,9 +49,9 @@ function toDateTimeLocalValue(value: Date | string) {
   return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 16)
 }
 
-function formatPaymentMode(paymentMode: "CASH" | "GPAY" | "BANK_ACCOUNT") {
-  if (paymentMode === "BANK_ACCOUNT") return "Bank Account"
-  if (paymentMode === "GPAY") return "GPay"
+function formatPaymentMode(paymentMode: "CASH" | "GPAY" | "BANK_ACCOUNT", upiId?: string | null, accountNumber?: string | null) {
+  if (paymentMode === "GPAY") return upiId ? `GPay - ${upiId}` : "GPay"
+  if (paymentMode === "BANK_ACCOUNT") return accountNumber ? `Bank - ${accountNumber}` : "Bank Account"
   return "Cash"
 }
 
@@ -75,7 +79,7 @@ export function AdminDistributionTransactionsTable({
         Inputter: transaction.user.name || transaction.user.email,
         Amount: transaction.amount,
         Description: transaction.description || "-",
-        "Payment Method": formatPaymentMode(transaction.paymentMode),
+        "Payment Method": formatPaymentMode(transaction.paymentMode, transaction.upiId, transaction.accountNumber),
         "Transaction Date": formatDateTime(transaction.fundDate || transaction.createdAt),
       })),
     [transactions]
@@ -232,7 +236,7 @@ export function AdminDistributionTransactionsTable({
                       <option value="BANK_ACCOUNT">Bank Account</option>
                     </select>
                   ) : (
-                    <p className="text-sm text-gray-700">{formatPaymentMode(transaction.paymentMode)}</p>
+                    <p className="text-sm text-gray-700">{formatPaymentMode(transaction.paymentMode, transaction.upiId, transaction.accountNumber)}</p>
                   )}
                 </div>
 
@@ -365,7 +369,7 @@ export function AdminDistributionTransactionsTable({
                         <option value="BANK_ACCOUNT">Bank Account</option>
                       </select>
                     ) : (
-                      formatPaymentMode(transaction.paymentMode)
+                      formatPaymentMode(transaction.paymentMode, transaction.upiId, transaction.accountNumber)
                     )}
                   </td>
                   <td className="px-4 py-3 text-gray-700">
