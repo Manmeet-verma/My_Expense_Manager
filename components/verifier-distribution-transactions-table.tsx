@@ -11,6 +11,7 @@ type Transaction = {
   fundDate: Date | string
   status: "PENDING" | "APPROVED" | "REJECTED"
   createdAt: Date | string
+  adminRemark?: string | null
   user: {
     name: string | null
     email: string
@@ -83,26 +84,32 @@ export function VerifierDistributionTransactionsTable({
               </p>
               <StatusBadge status={transaction.status} />
             </div>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Amount:</span>
-                <span className="font-medium text-gray-900">{formatCurrency(transaction.amount)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Payment:</span>
-                <span className="text-gray-700">{formatPaymentMode(transaction.paymentMode)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Date:</span>
-                <span className="text-gray-700">{formatDateTime(transaction.fundDate || transaction.createdAt)}</span>
-              </div>
-              {transaction.description && (
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Note:</span>
-                  <span className="text-gray-700">{transaction.description}</span>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Amount:</span>
+                    <span className="font-medium text-gray-900">{formatCurrency(transaction.amount)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Payment:</span>
+                    <span className="text-gray-700">{formatPaymentMode(transaction.paymentMode)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Date:</span>
+                    <span className="text-gray-700">{formatDateTime(transaction.fundDate || transaction.createdAt)}</span>
+                  </div>
+                  {transaction.description && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Note:</span>
+                      <span className="text-gray-700">{transaction.description}</span>
+                    </div>
+                  )}
+                  {transaction.status === "REJECTED" && transaction.adminRemark && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Rejection Reason:</span>
+                      <span className="text-red-600 text-right max-w-[200px]">{transaction.adminRemark}</span>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
           </div>
         ))}
       </div>
@@ -117,6 +124,7 @@ export function VerifierDistributionTransactionsTable({
               <th className="px-4 py-3 font-semibold">Payment Method</th>
               <th className="px-4 py-3 font-semibold">Date</th>
               <th className="px-4 py-3 font-semibold">Status</th>
+              <th className="px-4 py-3 font-semibold">Admin Remark</th>
             </tr>
           </thead>
           <tbody>
@@ -139,6 +147,15 @@ export function VerifierDistributionTransactionsTable({
                 </td>
                 <td className="px-4 py-3">
                   <StatusBadge status={transaction.status} />
+                </td>
+                <td className="px-4 py-3 text-gray-700 max-w-[200px]">
+                  {transaction.status === "REJECTED" && transaction.adminRemark ? (
+                    <span className="text-red-600 text-xs">{transaction.adminRemark}</span>
+                  ) : transaction.status === "APPROVED" && transaction.adminRemark ? (
+                    <span className="text-gray-600 text-xs">{transaction.adminRemark}</span>
+                  ) : (
+                    <span className="text-gray-400">-</span>
+                  )}
                 </td>
               </tr>
             ))}

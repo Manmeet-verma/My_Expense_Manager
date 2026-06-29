@@ -591,7 +591,7 @@ export async function getMyFunds() {
   }
 
   return await prisma.fund.findMany({
-    where: { userId: session.user.id },
+    where: { userId: session.user.id, status: "APPROVED" },
     orderBy: { createdAt: "desc" },
   })
 }
@@ -754,6 +754,11 @@ const approveFundTransferSchema = z.object({
   transactionId: z.string().min(1, "Transaction ID is required"),
 })
 
+const rejectFundTransferSchema = z.object({
+  transactionId: z.string().min(1, "Transaction ID is required"),
+  adminRemark: z.string().min(1, "Rejection reason is required"),
+})
+
 export async function approvePendingFundTransfer(data: z.infer<typeof approveFundTransferSchema>) {
   const session = await auth()
 
@@ -810,20 +815,20 @@ export async function approvePendingFundTransfer(data: z.infer<typeof approveFun
   return { success: true }
 }
 
-export async function rejectPendingFundTransfer(data: z.infer<typeof approveFundTransferSchema>) {
+export async function rejectPendingFundTransfer(data: z.infer<typeof rejectFundTransferSchema>) {
   const session = await auth()
 
   if (!session?.user || session.user.role !== "ADMIN") {
     return { error: "Only admins can reject fund transfers" }
   }
 
-  const result = approveFundTransferSchema.safeParse(data)
+  const result = rejectFundTransferSchema.safeParse(data)
 
   if (!result.success) {
     return { error: result.error.issues[0].message }
   }
 
-  const { transactionId } = result.data
+  const { transactionId, adminRemark } = result.data
 
   const transaction = await prisma.fund.findUnique({
     where: { id: transactionId },
@@ -845,6 +850,7 @@ export async function rejectPendingFundTransfer(data: z.infer<typeof approveFund
     where: { id: transactionId },
     data: {
       status: "REJECTED",
+      adminRemark,
       approvedById: session.user.id,
       approvedAt: new Date(),
     },
@@ -1054,6 +1060,7 @@ export async function getPendingFundTransfers() {
       accountNumber: true,
       fundDate: true,
       createdAt: true,
+      adminRemark: true,
       user: {
         select: {
           name: true,
@@ -1100,6 +1107,7 @@ export async function getVerifierDistributionTransactions() {
       fundDate: true,
       status: true,
       createdAt: true,
+      adminRemark: true,
       user: {
         select: {
           name: true,
