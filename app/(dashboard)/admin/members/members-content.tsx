@@ -32,6 +32,7 @@ interface MembersContentProps {
   members?: MemberRow[]
   canManage?: boolean
   canApproveExpenses?: boolean
+  disableExpenseView?: boolean
 }
 
 interface MemberExpense {
@@ -108,6 +109,7 @@ export default function MembersContent({
   members: initialMembers,
   canManage = false,
   canApproveExpenses = false,
+  disableExpenseView = false,
 }: MembersContentProps) {
   const router = useRouter()
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -497,12 +499,16 @@ export default function MembersContent({
                   filteredMembers.map((member) => (
                     <tr key={member.id} className="border-t border-gray-100 odd:bg-gray-50">
                       <td className="px-4 py-3 font-medium text-gray-900">
-                        <button
-                          onClick={() => openMemberExpenses(member)}
-                          className="text-blue-700 hover:text-blue-800"
-                        >
-                          {member.name || "-"}
-                        </button>
+                        {disableExpenseView ? (
+                          <span>{member.name || "-"}</span>
+                        ) : (
+                          <button
+                            onClick={() => openMemberExpenses(member)}
+                            className="text-blue-700 hover:text-blue-800"
+                          >
+                            {member.name || "-"}
+                          </button>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-gray-700">{member.fatherName || "-"}</td>
                       <td className="px-4 py-3 text-gray-700">{member.aadhaarNo || "-"}</td>
@@ -550,12 +556,16 @@ export default function MembersContent({
               members.map((member) => (
                 <div key={member.id} className="p-4 space-y-3">
                   <div>
-                    <button
-                      onClick={() => openMemberExpenses(member)}
-                      className="font-semibold text-blue-700 hover:text-blue-800"
-                    >
-                      {member.name || "-"}
-                    </button>
+                    {disableExpenseView ? (
+                      <span className="font-semibold text-gray-900">{member.name || "-"}</span>
+                    ) : (
+                      <button
+                        onClick={() => openMemberExpenses(member)}
+                        className="font-semibold text-blue-700 hover:text-blue-800"
+                      >
+                        {member.name || "-"}
+                      </button>
+                    )}
                     <p className="text-sm text-gray-600">Father: {member.fatherName || "-"}</p>
                     <p className="text-sm text-gray-600">Aadhaar: {member.aadhaarNo || "-"}</p>
                     <p className="text-sm text-gray-600">{member.email}</p>
