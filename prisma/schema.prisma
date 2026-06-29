@@ -95,6 +95,14 @@ model Fund {
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+model InputterDeselection {
+  id           String   @id @default(cuid())
+  verifierId   String
+  memberId     String
+  reason       String
+  createdAt    DateTime @default(now())
+}
+
 model Category {
   id          String   @id @default(cuid())
   name        String   @unique

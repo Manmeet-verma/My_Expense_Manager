@@ -23,7 +23,7 @@ export async function GET(_request: Request, context: RouteContext) {
       return NextResponse.json({ error: "Inputter ID is required" }, { status: 400 })
     }
 
-    const allowedStatuses: ExpenseStatus[] = ["APPROVED", "REJECTED", "PENDING"]
+    const allowedStatuses: ExpenseStatus[] = ["APPROVED", "REJECTED", "PENDING", "PAID"]
 
     const whereClause =
       session.user.role === "ADMIN"
@@ -79,8 +79,37 @@ export async function GET(_request: Request, context: RouteContext) {
     const approved = expenses.filter((expense) => expense.status === "APPROVED")
     const rejected = expenses.filter((expense) => expense.status === "REJECTED")
     const pending = expenses.filter((expense) => expense.status === "PENDING")
+    const paid = expenses.filter((expense) => expense.status === "PAID")
 
-    return NextResponse.json({ approved, rejected, pending })
+    const member = await prisma.user.findUnique({
+      where: { id: memberId },
+      select: {
+        totalBudget: true,
+        receivedAmount: true,
+      },
+    })
+
+    const allFunds = await prisma.fund.findMany({
+      where: {
+        userId: memberId,
+        status: "APPROVED",
+      },
+      select: { amount: true },
+    })
+
+    const totalCollectionFunds = allFunds.reduce((sum, f) => sum + f.amount, 0)
+    const totalBudget = member?.totalBudget || 0
+    const receivedAmount = member?.receivedAmount || 0
+
+    return NextResponse.json({
+      approved,
+      rejected,
+      pending,
+      paid,
+      totalBudget,
+      receivedAmount,
+      totalCollectionFunds,
+    })
   } catch (error) {
     console.error("Failed to fetch inputter expenses:", error)
     return NextResponse.json({ error: "Failed to fetch inputter expenses" }, { status: 500 })

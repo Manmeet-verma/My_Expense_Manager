@@ -1,8 +1,9 @@
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
-import { getMembers, getProjects, getSupervisors } from "@/actions/auth"
+import { getMembers, getProjects, getSupervisors, getInputterDeselections } from "@/actions/auth"
 import { ProjectAssignmentSection } from "@/components/forms/project-assignment-section"
 import { ProjectManagementSection } from "@/components/forms/project-management-section"
+import { DeselectionHistory } from "@/components/deselection-history"
 
 export default async function AssignmentsPage() {
   const session = await auth()
@@ -15,7 +16,12 @@ export default async function AssignmentsPage() {
     redirect("/dashboard")
   }
 
-  const [members, verifiers, projects] = await Promise.all([getMembers(), getSupervisors(), getProjects()])
+  const [members, verifiers, projects, deselections] = await Promise.all([
+    getMembers(),
+    getSupervisors(),
+    getProjects(),
+    getInputterDeselections(),
+  ])
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -26,6 +32,9 @@ export default async function AssignmentsPage() {
 
       <div className="space-y-6">
         <ProjectManagementSection projects={projects} />
+        {deselections.length > 0 && (
+          <DeselectionHistory deselections={deselections} members={members} verifiers={verifiers} />
+        )}
         <ProjectAssignmentSection members={members} verifiers={verifiers} projects={projects} />
       </div>
     </div>

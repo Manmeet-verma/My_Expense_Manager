@@ -1184,3 +1184,77 @@ export async function forgotPassword(data: z.infer<typeof forgotPasswordSchema>)
 
   return { success: true }
 }
+
+const deselectInputterSchema = z.object({
+  memberId: z.string().min(1, "Inputter ID is required"),
+  reason: z.string().min(1, "Reason for deselection is required"),
+})
+
+export async function deselectInputter(data: z.infer<typeof deselectInputterSchema>) {
+  const session = await auth()
+
+  if (!session?.user || (session.user.role !== "VERIFIER" && session.user.role !== "SUPERVISOR")) {
+    return { error: "Only verifiers can deselect inputters" }
+  }
+
+  const result = deselectInputterSchema.safeParse(data)
+  if (!result.success) {
+    return { error: result.error.issues[0].message }
+  }
+
+  const { memberId, reason } = result.data
+
+  const member = await prisma.user.findUnique({
+    where: { id: memberId },
+    select: { id: true, role: true, assignedVerifierIds: true },
+  })
+
+  if (!member || member.role !== "MEMBER") {
+    return { error: "Inputter not found" }
+  }
+
+  if (!member.assignedVerifierIds.includes(session.user.id)) {
+    return { error: "This inputter is not assigned to you" }
+  }
+
+  const updatedVerifierIds = member.assignedVerifierIds.filter((id) => id !== session.user.id)
+
+  await prisma.$transaction([
+    prisma.$executeRaw`
+      UPDATE "User"
+      SET
+        "assignedVerifierIds" = ${updatedVerifierIds}::text[],
+        "assignedVerifierId" = ${updatedVerifierIds[0] ?? null}
+      WHERE "id" = ${memberId}
+    `,
+    prisma.inputterDeselection.create({
+      data: {
+        verifierId: session.user.id,
+        memberId,
+        reason,
+      },
+    }),
+  ])
+
+  revalidatePath("/admin")
+  revalidatePath("/admin/dashboard")
+  revalidatePath("/admin/members")
+  revalidatePath("/admin/assignments")
+  revalidatePath("/dashboard")
+  revalidatePath("/verifier/fund-transfer")
+
+  return { success: true }
+}
+
+export async function getInputterDeselections() {
+  const session = await auth()
+
+  if (!session?.user || session.user.role !== "ADMIN") {
+    return []
+  }
+
+  return await prisma.inputterDeselection.findMany({
+    orderBy: { createdAt: "desc" },
+    take: 100,
+  })
+}
