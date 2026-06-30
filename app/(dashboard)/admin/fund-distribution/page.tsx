@@ -3,7 +3,8 @@ import { redirect } from "next/navigation"
 import { FundDistributionForm } from "@/components/admin-fund-distribution-form"
 import { AdminDistributionTransactionsTable } from "@/components/admin-distribution-transactions-table"
 import { AdminPendingTransfersTable } from "@/components/admin-pending-transfers-table"
-import { getDistributedFundTransactions, getPendingFundTransfers } from "@/actions/expense"
+import { getDistributedFundTransactions, getPendingFundTransfers, getPendingMemberCollections } from "@/actions/expense"
+import { AdminPendingCollectionsTable } from "@/components/admin-pending-collections-table"
 
 export default async function FundDistributionPage() {
   let session = null
@@ -22,9 +23,10 @@ export default async function FundDistributionPage() {
     redirect("/dashboard")
   }
 
-  const [transactions, pendingTransfers] = await Promise.all([
+  const [transactions, pendingTransfers, pendingCollections] = await Promise.all([
     getDistributedFundTransactions(),
     getPendingFundTransfers(),
+    getPendingMemberCollections(),
   ])
 
   return (
@@ -38,6 +40,18 @@ export default async function FundDistributionPage() {
         <div className="mx-auto w-full max-w-3xl rounded-lg border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
           <FundDistributionForm />
         </div>
+
+        {pendingCollections.length > 0 && (
+          <div className="w-full rounded-lg border border-blue-200 bg-blue-50">
+            <div className="border-b border-blue-100 px-4 py-3">
+              <h2 className="text-lg font-semibold text-blue-900">Pending Inputter Collections</h2>
+              <p className="text-sm text-blue-700 mt-0.5">Approve or reject collection requests from inputters</p>
+            </div>
+            <div className="p-4">
+              <AdminPendingCollectionsTable collections={pendingCollections} />
+            </div>
+          </div>
+        )}
 
         {pendingTransfers.length > 0 && (
           <div className="w-full rounded-lg border border-amber-200 bg-amber-50">

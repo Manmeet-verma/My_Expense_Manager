@@ -571,11 +571,14 @@ export async function createFund(data: z.infer<typeof fundSchema>) {
       upiId: paymentMode === "GPAY" ? upiId || null : null,
       accountNumber: paymentMode === "BANK_ACCOUNT" ? accountNumber || null : null,
       fundDate: fundDate ? new Date(fundDate) : new Date(),
+      status: "PENDING",
       userId: session.user.id,
     },
   })
 
+  revalidatePath("/dashboard")
   revalidatePath("/dashboard/my-statement")
+  revalidatePath("/dashboard/statement")
   return { success: true }
 }
 
@@ -1126,6 +1129,77 @@ export async function getVerifierDistributionTransactions() {
       description: parseDistributionDescription(transaction.receivedFrom),
     }))
   )
+}
+
+export async function getPendingMemberCollections() {
+  const session = await auth()
+
+  if (!session?.user || session.user.role !== "ADMIN") {
+    return []
+  }
+
+  return await prisma.fund.findMany({
+    where: {
+      status: "PENDING",
+      NOT: {
+        receivedFrom: {
+          startsWith: VERIFIER_DISTRIBUTION_PREFIX,
+        },
+      },
+    },
+    select: {
+      id: true,
+      amount: true,
+      receivedFrom: true,
+      paymentMode: true,
+      upiId: true,
+      accountNumber: true,
+      fundDate: true,
+      createdAt: true,
+      user: {
+        select: {
+          name: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 100,
+  })
+}
+
+export async function getRejectedMemberCollections() {
+  const session = await auth()
+
+  if (!session?.user || session.user.role !== "MEMBER") {
+    return []
+  }
+
+  return await prisma.fund.findMany({
+    where: {
+      userId: session.user.id,
+      status: "REJECTED",
+      NOT: {
+        receivedFrom: {
+          startsWith: VERIFIER_DISTRIBUTION_PREFIX,
+        },
+      },
+    },
+    select: {
+      id: true,
+      amount: true,
+      receivedFrom: true,
+      paymentMode: true,
+      fundDate: true,
+      adminRemark: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 50,
+  })
 }
 
 export async function getAllMembers() {
