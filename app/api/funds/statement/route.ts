@@ -23,9 +23,11 @@ export async function GET(request: NextRequest) {
   const userId = searchParams.get("userId")
 
   try {
+    const isAdminOrSupervisor = session.user.role === "ADMIN" || session.user.role === "SUPERVISOR"
+
     // Only allow userId parameter if user is admin or supervisor
-    const requestedUserId = userId && (session.user.role === "ADMIN" || session.user.role === "SUPERVISOR") 
-      ? userId 
+    const requestedUserId = userId && isAdminOrSupervisor
+      ? userId
       : session.user.id
 
     let funds
@@ -41,6 +43,7 @@ export async function GET(request: NextRequest) {
             lte: toDateTime,
           },
           userId: requestedUserId,
+          ...(isAdminOrSupervisor ? {} : { status: "APPROVED" }),
         },
         orderBy: {
           createdAt: "desc",
@@ -50,6 +53,7 @@ export async function GET(request: NextRequest) {
       funds = await prisma.fund.findMany({
         where: {
           userId: requestedUserId,
+          ...(isAdminOrSupervisor ? {} : { status: "APPROVED" }),
         },
         orderBy: {
           createdAt: "desc",

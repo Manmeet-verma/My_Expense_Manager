@@ -429,7 +429,7 @@ export async function getExpenseStats() {
     prisma.expense.aggregate({ where: { ...where, status: "PAID" }, _sum: { amount: true } }),
     prisma.expense.aggregate({ where: { ...where, status: "PENDING" }, _sum: { amount: true } }),
     prisma.expense.aggregate({ where: { ...where, status: "REJECTED" }, _sum: { amount: true } }),
-    prisma.fund.aggregate({ where: canViewGlobalStats ? {} : { userId: session.user.id }, _sum: { amount: true } }),
+    prisma.fund.aggregate({ where: canViewGlobalStats ? {} : { userId: session.user.id, status: "APPROVED" }, _sum: { amount: true } }),
     prisma.expense.aggregate({ where, _sum: { amount: true } }),
   ])
 
