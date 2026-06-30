@@ -42,5 +42,8 @@ next-env.d.ts
 
 /app/generated/prisma
 
+# dev server logs
+dev-server*.log
+
 # Windows reserved-name artifact
 nul
