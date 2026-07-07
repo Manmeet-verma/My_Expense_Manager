@@ -3,7 +3,7 @@
 import { useCallback } from "react"
 import { formatCurrency } from "@/lib/utils"
 import { Card, CardContent } from "@/components/ui/card"
-import { TrendingUp, Clock, CheckCircle, XCircle, DollarSign } from "lucide-react"
+import { TrendingUp, XCircle, Clock, CheckCircle, DollarSign } from "lucide-react"
 
 interface StatsCardsProps {
   mode?: "member" | "admin"
@@ -25,29 +25,17 @@ interface StatsCardsProps {
 }
 
 export function StatsCards({ stats, mode = "member", activeStatus, onSelectStatus }: StatsCardsProps & { activeStatus?: string; onSelectStatus?: (s: string) => void }) {
-  const totalExpenseAmount = stats.submittedAmount ?? 0
-  const collectionAmount = stats.collectionAmount ?? stats.totalBudget ?? 0
-  const remainingCollection = collectionAmount - totalExpenseAmount
-
   const openingBalance = stats.totalBudget ?? 0
   const totalExpenseRequested = stats.submittedAmount ?? 0
-  const rejectedFund = stats.rejectedAmount ?? 0
-  const verifiedFund = stats.totalApprovedAmount ?? 0
-  const approvedFund = stats.totalApprovedAmount ?? 0
+  const rejectedAmount = stats.rejectedAmount ?? 0
+  const verificationPending = stats.pendingAmount ?? 0
+  const approvedPending = stats.totalApprovedAmount ?? 0
+  const netRequiredFund = totalExpenseRequested - rejectedAmount
   const totalFundReceived = stats.collectionAmount ?? 0
   const totalFundPaid = stats.totalPaidAmount ?? 0
-  const unapprovedFund = Math.max(0, openingBalance - totalExpenseRequested)
-  const balanceReceivable = Math.max(0, openingBalance - totalExpenseRequested - totalFundReceived)
   const closingBalance = openingBalance + totalFundReceived - totalFundPaid
 
-  const memberCards = [
-    {
-      title: "Opening Balance",
-      value: formatCurrency(openingBalance),
-      icon: DollarSign,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50",
-    },
+  const line1Cards = [
     {
       title: "Total Expense Requested",
       value: formatCurrency(totalExpenseRequested),
@@ -56,32 +44,42 @@ export function StatsCards({ stats, mode = "member", activeStatus, onSelectStatu
       bgColor: "bg-orange-50",
     },
     {
-      title: "Rejected Fund",
-      value: formatCurrency(rejectedFund),
+      title: "Rejected",
+      value: formatCurrency(rejectedAmount),
       icon: XCircle,
       color: "text-red-600",
       bgColor: "bg-red-50",
     },
     {
-      title: "Verified Fund",
-      value: formatCurrency(verifiedFund),
+      title: "Verification Pending",
+      value: formatCurrency(verificationPending),
+      icon: Clock,
+      color: "text-yellow-600",
+      bgColor: "bg-yellow-50",
+    },
+    {
+      title: "Approved Pending",
+      value: formatCurrency(approvedPending),
       icon: CheckCircle,
       color: "text-green-600",
       bgColor: "bg-green-50",
     },
     {
-      title: "Approved Fund",
-      value: formatCurrency(approvedFund),
-      icon: CheckCircle,
-      color: "text-emerald-600",
-      bgColor: "bg-emerald-50",
+      title: "Net Required Fund",
+      value: formatCurrency(netRequiredFund),
+      icon: DollarSign,
+      color: "text-purple-600",
+      bgColor: "bg-purple-50",
     },
+  ]
+
+  const line2Cards = [
     {
-      title: "Unverified / Unapproved Fund",
-      value: formatCurrency(unapprovedFund),
-      icon: Clock,
-      color: "text-yellow-600",
-      bgColor: "bg-yellow-50",
+      title: "Opening Balance",
+      value: formatCurrency(openingBalance),
+      icon: DollarSign,
+      color: "text-blue-600",
+      bgColor: "bg-blue-50",
     },
     {
       title: "Total Fund Received",
@@ -98,13 +96,6 @@ export function StatsCards({ stats, mode = "member", activeStatus, onSelectStatu
       bgColor: "bg-teal-50",
     },
     {
-      title: "Balance Receivable",
-      value: formatCurrency(balanceReceivable),
-      icon: DollarSign,
-      color: "text-purple-600",
-      bgColor: "bg-purple-50",
-    },
-    {
       title: "Closing Balance",
       value: formatCurrency(closingBalance),
       icon: DollarSign,
@@ -116,7 +107,7 @@ export function StatsCards({ stats, mode = "member", activeStatus, onSelectStatu
   const adminCards = [
     {
       title: "Total Expense",
-      value: formatCurrency(totalExpenseAmount),
+      value: formatCurrency(stats.submittedAmount ?? 0),
       icon: TrendingUp,
       color: "text-blue-600",
       bgColor: "bg-blue-50",
@@ -165,19 +156,15 @@ export function StatsCards({ stats, mode = "member", activeStatus, onSelectStatu
     },
   ]
 
-  const cards = mode === "admin" ? adminCards : memberCards
-  const gridClass =
-    mode === "admin"
-      ? "grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
-      : "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
+  const cards = mode === "admin" ? adminCards : []
   const handleClick = useCallback(
     (title: string) => {
-      if (!onSelectStatus) return
+      if (!onSelectStatus || mode === "admin") return
       const mapping: Record<string, string> = {
         "Total Fund Received": "COLLECTION",
-        "Approved Fund": "APPROVED",
-        "Rejected Fund": "REJECTED",
-        "Unverified / Unapproved Fund": "PENDING",
+        "Approved Pending": "APPROVED",
+        "Rejected": "REJECTED",
+        "Verification Pending": "PENDING",
         "Total Fund Paid": "PAID",
       }
       const mapped = mapping[title] || "ALL"
@@ -187,36 +174,106 @@ export function StatsCards({ stats, mode = "member", activeStatus, onSelectStatu
         onSelectStatus(mapped)
       }
     },
-    [onSelectStatus, activeStatus]
+    [onSelectStatus, activeStatus, mode]
   )
 
+  if (mode === "admin") {
+    return (
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {cards.map((card) => {
+          const mapped = {
+            "Total Fund Received": "COLLECTION",
+            "Approved Expense": "APPROVED",
+            "Rejected Expense": "REJECTED",
+            "Pending Expense": "PENDING",
+            "Total Fund Paid": "PAID",
+          }[card.title] || "ALL"
+          const isActive = activeStatus === mapped
+          return (
+            <Card
+              key={card.title}
+              onClick={() => handleClick(card.title)}
+              className={`${isActive ? "ring-2 ring-offset-1 ring-blue-300" : ""} cursor-pointer`}
+            >
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0 flex-1 pr-2">
+                    <p className="text-xs text-gray-500 sm:text-sm">{card.title}</p>
+                    <p className="mt-1 text-lg font-bold leading-tight text-gray-900 sm:text-2xl">{card.value}</p>
+                  </div>
+                  <div className={`rounded-lg p-2 ${card.bgColor}`}>
+                    <card.icon className={`h-4 w-4 sm:h-5 sm:w-5 ${card.color}`} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
+    )
+  }
+
   return (
-    <div className={gridClass}>
-      {cards.map((card) => {
-        const mapped = {
-          "Total Fund Received": "COLLECTION",
-          "Approved Fund": "APPROVED",
-          "Rejected Fund": "REJECTED",
-          "Unverified / Unapproved Fund": "PENDING",
-          "Total Fund Paid": "PAID",
-        }[card.title] || "ALL"
-        const isActive = activeStatus === mapped
-        return (
-          <Card key={card.title} onClick={() => handleClick(card.title)} className={`${isActive ? "ring-2 ring-offset-1 ring-blue-300" : ""} cursor-pointer`}>
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-center justify-between">
-                <div className="min-w-0 flex-1 pr-2">
-                  <p className="text-xs text-gray-500 sm:text-sm">{card.title}</p>
-                  <p className="mt-1 text-lg font-bold leading-tight text-gray-900 sm:text-2xl">{card.value}</p>
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        {line1Cards.map((card) => {
+          const mapped = {
+            "Total Fund Received": "COLLECTION",
+            "Approved Pending": "APPROVED",
+            "Rejected": "REJECTED",
+            "Verification Pending": "PENDING",
+            "Total Fund Paid": "PAID",
+          }[card.title] || "ALL"
+          const isActive = activeStatus === mapped
+          return (
+            <Card
+              key={card.title}
+              onClick={() => handleClick(card.title)}
+              className={`${isActive ? "ring-2 ring-offset-1 ring-blue-300" : ""} cursor-pointer`}
+            >
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0 flex-1 pr-2">
+                    <p className="text-xs text-gray-500 sm:text-sm">{card.title}</p>
+                    <p className="mt-1 text-lg font-bold leading-tight text-gray-900 sm:text-2xl">{card.value}</p>
+                  </div>
+                  <div className={`rounded-lg p-2 ${card.bgColor}`}>
+                    <card.icon className={`h-4 w-4 sm:h-5 sm:w-5 ${card.color}`} />
+                  </div>
                 </div>
-                <div className={`rounded-lg p-2 ${card.bgColor}`}>
-                  <card.icon className={`h-4 w-4 sm:h-5 sm:w-5 ${card.color}`} />
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {line2Cards.map((card) => {
+          const mapped = {
+            "Total Fund Received": "COLLECTION",
+            "Total Fund Paid": "PAID",
+          }[card.title] || "ALL"
+          const isActive = activeStatus === mapped
+          return (
+            <Card
+              key={card.title}
+              onClick={() => handleClick(card.title)}
+              className={`${isActive ? "ring-2 ring-offset-1 ring-blue-300" : ""} cursor-pointer`}
+            >
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0 flex-1 pr-2">
+                    <p className="text-xs text-gray-500 sm:text-sm">{card.title}</p>
+                    <p className="mt-1 text-lg font-bold leading-tight text-gray-900 sm:text-2xl">{card.value}</p>
+                  </div>
+                  <div className={`rounded-lg p-2 ${card.bgColor}`}>
+                    <card.icon className={`h-4 w-4 sm:h-5 sm:w-5 ${card.color}`} />
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        )
-      })}
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
     </div>
   )
 }

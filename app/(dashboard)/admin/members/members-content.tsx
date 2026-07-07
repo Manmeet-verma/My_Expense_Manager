@@ -4,12 +4,14 @@ import { useMemo, useState } from "react"
 import { usePathname } from "next/navigation"
 import { useRouter } from "next/navigation"
 import { formatAssignedProjects, formatCurrency, formatDate } from "@/lib/utils"
-import { deleteMember } from "@/actions/auth"
+import { deleteMember, deselectInputter } from "@/actions/auth"
 import { verifyExpense } from "@/actions/expense"
 import { ExportExcelButton } from "@/components/export-excel-button"
 import { Input } from "@/components/ui/input"
 import { EditAccountForm } from "@/components/forms/edit-account-form"
-import { Pencil } from "lucide-react"
+import { Pencil, X } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
 
 interface MemberRow {
   id: string
@@ -20,6 +22,12 @@ interface MemberRow {
   upiId: string | null
   accountNumber: string | null
   assignedProject: string[] | null
+  assignedVerifierId: string | null
+  assignedVerifier: {
+    id: string
+    name: string | null
+    email: string
+  } | null
   receivedAmount: number
   totalEdits: number
   createdAt: Date
@@ -32,6 +40,7 @@ interface MembersContentProps {
   members?: MemberRow[]
   canManage?: boolean
   canApproveExpenses?: boolean
+  canDeselect?: boolean
   disableExpenseView?: boolean
 }
 
@@ -109,6 +118,7 @@ export default function MembersContent({
   members: initialMembers,
   canManage = false,
   canApproveExpenses = false,
+  canDeselect = false,
   disableExpenseView = false,
 }: MembersContentProps) {
   const router = useRouter()
@@ -120,6 +130,11 @@ export default function MembersContent({
   const [loadingExpenses, setLoadingExpenses] = useState(false)
   const [approving, setApproving] = useState(false)
   const [selectedPendingIds, setSelectedPendingIds] = useState<string[]>([])
+  const [showDeselectModal, setShowDeselectModal] = useState(false)
+  const [deselectingMember, setDeselectingMember] = useState<MemberRow | null>(null)
+  const [deselectReason, setDeselectReason] = useState("")
+  const [deselecting, setDeselecting] = useState(false)
+  const [deselectError, setDeselectError] = useState("")
   const [expenseHeadSearch, setExpenseHeadSearch] = useState("")
   const [memberFromDate, setMemberFromDate] = useState("")
   const [memberToDate, setMemberToDate] = useState("")
@@ -271,6 +286,23 @@ export default function MembersContent({
     )
   }
 
+  async function handleDeselect() {
+    if (!deselectingMember || !deselectReason.trim()) return
+    setDeselecting(true)
+    setDeselectError("")
+    const result = await deselectInputter({ memberId: deselectingMember.id, reason: deselectReason.trim() })
+    if (result?.error) {
+      setDeselectError(result.error)
+      setDeselecting(false)
+      return
+    }
+    setDeselecting(false)
+    setShowDeselectModal(false)
+    setDeselectingMember(null)
+    setDeselectReason("")
+    router.refresh()
+  }
+
   const filteredMembers = useMemo(
     () =>
       members.filter((member) => {
@@ -375,8 +407,10 @@ export default function MembersContent({
           <h1 className="text-2xl font-bold text-gray-900">Inputter List</h1>
           <p className="mt-1 text-gray-600">
             {canManage
-              ? "Admin and verifier access: manage inputter accounts"
-              : "Verifier access: view inputter accounts"}
+              ? "Admin access: manage inputter accounts"
+              : canDeselect
+                ? "Verifier access: deselect inputters from your list"
+                : "View inputter accounts"}
           </p>
           <div className="mt-3">
             <ExportExcelButton
@@ -481,6 +515,7 @@ export default function MembersContent({
                   <th className="px-4 py-3 font-semibold">Bank Account</th>
                   <th className="px-4 py-3 font-semibold">Email</th>
                   <th className="px-4 py-3 font-semibold">Assigned Project</th>
+                  <th className="px-4 py-3 font-semibold">Verifier</th>
                   <th className="px-4 py-3 font-semibold">Expenses</th>
                   <th className="px-4 py-3 font-semibold">Collection</th>
                   <th className="px-4 py-3 font-semibold">Edits</th>
@@ -491,7 +526,7 @@ export default function MembersContent({
               <tbody>
                 {filteredMembers.length === 0 ? (
                   <tr>
-                    <td colSpan={12} className="px-4 py-10 text-center text-gray-500">
+                    <td colSpan={13} className="px-4 py-10 text-center text-gray-500">
                       No inputters found
                     </td>
                   </tr>
@@ -516,6 +551,7 @@ export default function MembersContent({
                       <td className="px-4 py-3 text-gray-700">{member.accountNumber || "-"}</td>
                       <td className="px-4 py-3 text-gray-700">{member.email}</td>
                       <td className="px-4 py-3 text-gray-700 font-medium">{formatAssignedProjects(member.assignedProject) || "-"}</td>
+                      <td className="px-4 py-3 text-gray-700">{member.assignedVerifier?.name || member.assignedVerifier?.email || "-"}</td>
                       <td className="px-4 py-3 text-gray-700">{member._count.expenses}</td>
                       <td className="px-4 py-3 text-gray-700">{formatCurrency(member.receivedAmount)}</td>
                       <td className="px-4 py-3 text-gray-700">{member.totalEdits}</td>
@@ -538,6 +574,13 @@ export default function MembersContent({
                               {deletingId === member.id ? "Deleting..." : "Delete"}
                             </button>
                           </div>
+                        ) : canDeselect ? (
+                          <button
+                            onClick={() => { setDeselectingMember(member); setShowDeselectModal(true) }}
+                            className="text-orange-600 hover:text-orange-800 text-sm"
+                          >
+                            Deselect
+                          </button>
                         ) : (
                           <span className="text-xs text-gray-500">View only</span>
                         )}
@@ -568,6 +611,7 @@ export default function MembersContent({
                     )}
                     <p className="text-sm text-gray-600">Father: {member.fatherName || "-"}</p>
                     <p className="text-sm text-gray-600">Aadhaar: {member.aadhaarNo || "-"}</p>
+                    <p className="text-sm text-gray-600">Verifier: {member.assignedVerifier?.name || member.assignedVerifier?.email || "-"}</p>
                     <p className="text-sm text-gray-600">{member.email}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-sm">
@@ -605,6 +649,13 @@ export default function MembersContent({
                         {deletingId === member.id ? "Deleting..." : "Delete Inputter"}
                       </button>
                     </div>
+                  ) : canDeselect ? (
+                    <button
+                      onClick={() => { setDeselectingMember(member); setShowDeselectModal(true) }}
+                      className="w-full mt-2 py-2 text-sm text-orange-600 border border-orange-200 rounded hover:bg-orange-50"
+                    >
+                      Deselect Inputter
+                    </button>
                   ) : (
                     <p className="w-full mt-2 py-2 text-center text-xs text-gray-500 border border-gray-200 rounded">
                       View only
@@ -650,6 +701,14 @@ export default function MembersContent({
                       {deletingId === selectedMember.id ? "Deleting..." : "Delete"}
                     </button>
                   </>
+                )}
+                {canDeselect && !canManage && (
+                  <button
+                    onClick={() => { setDeselectingMember(selectedMember); setShowDeselectModal(true) }}
+                    className="text-sm text-orange-600 hover:text-orange-800 border border-orange-200 rounded px-3 py-1.5"
+                  >
+                    Deselect
+                  </button>
                 )}
                 <button
                   onClick={() => setSelectedMember(null)}
@@ -839,6 +898,58 @@ export default function MembersContent({
                 </table>
               </div>
             )}
+          </div>
+        )}
+
+        {showDeselectModal && deselectingMember && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-md rounded-lg bg-white p-5 shadow-lg">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">Deselect Inputter</h3>
+                <button
+                  onClick={() => { setShowDeselectModal(false); setDeselectingMember(null); setDeselectReason(""); setDeselectError("") }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <p className="mb-3 text-sm text-gray-600">
+                This will remove <strong>{deselectingMember.name || deselectingMember.email}</strong> from your assigned list. Please provide a reason.
+              </p>
+              <div className="mb-4">
+                <Label htmlFor="deselectReasonModal">Reason for Deselection *</Label>
+                <textarea
+                  id="deselectReasonModal"
+                  value={deselectReason}
+                  onChange={(e) => setDeselectReason(e.target.value)}
+                  placeholder="Explain why you are deselecting this inputter..."
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                  rows={4}
+                  required
+                />
+              </div>
+              {deselectError && (
+                <div className="mb-3 rounded bg-red-50 p-3 text-sm text-red-600">{deselectError}</div>
+              )}
+              <div className="flex gap-2 justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => { setShowDeselectModal(false); setDeselectingMember(null); setDeselectReason(""); setDeselectError("") }}
+                  disabled={deselecting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  className="bg-red-600 hover:bg-red-700"
+                  onClick={() => void handleDeselect()}
+                  disabled={deselecting || !deselectReason.trim()}
+                >
+                  {deselecting ? "Deselecting..." : "Confirm Deselect"}
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </div>

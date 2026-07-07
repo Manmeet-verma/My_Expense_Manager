@@ -1,6 +1,6 @@
 'use client'
 
-import React, { startTransition, useEffect, useState } from 'react'
+import React, { startTransition, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AdminExpenseManagementTable } from './admin-expense-management-table'
 import { deselectInputter } from '@/actions/auth'
@@ -68,6 +68,9 @@ export function SupervisorInputterFilter({
   const [totalBudget, setTotalBudget] = useState(0)
   const [receivedAmount, setReceivedAmount] = useState(0)
   const [totalCollectionFunds, setTotalCollectionFunds] = useState(0)
+  const [fromDate, setFromDate] = useState(() => new Date().toISOString().split("T")[0])
+  const [toDate, setToDate] = useState(() => new Date().toISOString().split("T")[0])
+  const [activeStatus, setActiveStatus] = useState<string>("ALL")
   const [showDeselectModal, setShowDeselectModal] = useState(false)
   const [deselectReason, setDeselectReason] = useState("")
   const [deselecting, setDeselecting] = useState(false)
@@ -114,6 +117,7 @@ export function SupervisorInputterFilter({
           setTotalBudget(data.totalBudget || 0)
           setReceivedAmount(data.receivedAmount || 0)
           setTotalCollectionFunds(data.totalCollectionFunds || 0)
+          setActiveStatus("ALL")
         }
       })
       .catch(() => { if (!cancelled) setExpenses([]) })
@@ -122,29 +126,29 @@ export function SupervisorInputterFilter({
     return () => { cancelled = true }
   }, [selectedId])
 
-  const pendingForVerification = expenses
-    .filter((e) => e.status === "PENDING" && (!e.approvedBy || (e.approvedBy.role !== "SUPERVISOR" && e.approvedBy.role !== "VERIFIER")))
-    .reduce((sum, e) => sum + e.amount, 0)
+  const dateFilteredExpenses = useMemo(() => {
+    return expenses.filter((e) => {
+      const d = new Date(e.createdAt)
+      const fromOk = !fromDate || d >= new Date(`${fromDate}T00:00:00`)
+      const toOk = !toDate || d <= new Date(`${toDate}T23:59:59`)
+      return fromOk && toOk
+    })
+  }, [expenses, fromDate, toDate])
 
-  const rejected = expenses
-    .filter((e) => e.status === "REJECTED")
-    .reduce((sum, e) => sum + e.amount, 0)
+  const statusFilteredExpenses = useMemo(() => {
+    if (activeStatus === "ALL") return dateFilteredExpenses
+    return dateFilteredExpenses.filter((e) => e.status === activeStatus)
+  }, [dateFilteredExpenses, activeStatus])
 
-  const pendingForApproval = expenses
-    .filter((e) => e.status === "PENDING" && e.approvedBy && (e.approvedBy.role === "SUPERVISOR" || e.approvedBy.role === "VERIFIER"))
-    .reduce((sum, e) => sum + e.amount, 0)
-
-  const approvedButPayable = expenses
-    .filter((e) => e.status === "APPROVED")
-    .reduce((sum, e) => sum + e.amount, 0)
-
-  const paid = expenses
-    .filter((e) => e.status === "PAID")
-    .reduce((sum, e) => sum + e.amount, 0)
-
-  const totalReceivedFund = totalCollectionFunds
+  const totalExpenseRequested = dateFilteredExpenses.reduce((sum, e) => sum + e.amount, 0)
+  const rejectedAmount = dateFilteredExpenses.filter((e) => e.status === "REJECTED").reduce((sum, e) => sum + e.amount, 0)
+  const verificationPending = dateFilteredExpenses.filter((e) => e.status === "PENDING").reduce((sum, e) => sum + e.amount, 0)
+  const approvedPending = dateFilteredExpenses.filter((e) => e.status === "APPROVED").reduce((sum, e) => sum + e.amount, 0)
+  const netRequiredFund = totalExpenseRequested - rejectedAmount
+  const paid = dateFilteredExpenses.filter((e) => e.status === "PAID").reduce((sum, e) => sum + e.amount, 0)
+  const totalFundReceived = totalCollectionFunds
   const openingBalance = totalBudget
-  const closingBalance = openingBalance + totalReceivedFund - paid
+  const closingBalance = openingBalance + totalFundReceived - paid
 
   async function handleDeselect() {
     if (!selectedId || !deselectReason.trim()) return
@@ -164,15 +168,19 @@ export function SupervisorInputterFilter({
     router.refresh()
   }
 
-  const cards = [
-    { label: "Opening Balance", value: openingBalance, color: "text-gray-700", bg: "bg-gray-50", border: "border-gray-300" },
-    { label: "Pending for Verification", value: pendingForVerification, color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-300" },
-    { label: "Rejected", value: rejected, color: "text-red-700", bg: "bg-red-50", border: "border-red-300" },
-    { label: "Pending for Approval", value: pendingForApproval, color: "text-orange-700", bg: "bg-orange-50", border: "border-orange-300" },
-    { label: "Approved but Payable", value: approvedButPayable, color: "text-yellow-700", bg: "bg-yellow-50", border: "border-yellow-300" },
-    { label: "Paid", value: paid, color: "text-green-700", bg: "bg-green-50", border: "border-green-300" },
-    { label: "Total Received Fund", value: totalReceivedFund, color: "text-indigo-700", bg: "bg-indigo-50", border: "border-indigo-300" },
-    { label: "Closing Balance", value: closingBalance, color: "text-violet-900", bg: "bg-violet-50", border: "border-violet-300", subtitle: "Opening Balance + Total Received Fund - Paid" },
+  const line1Cards = [
+    { label: "Total Expense Requested", value: totalExpenseRequested, color: "text-orange-700", bg: "bg-orange-50", border: "border-orange-300" },
+    { label: "Rejected", value: rejectedAmount, color: "text-red-700", bg: "bg-red-50", border: "border-red-300" },
+    { label: "Verification Pending", value: verificationPending, color: "text-yellow-700", bg: "bg-yellow-50", border: "border-yellow-300" },
+    { label: "Approved Pending", value: approvedPending, color: "text-green-700", bg: "bg-green-50", border: "border-green-300" },
+    { label: "Net Required Fund", value: netRequiredFund, color: "text-purple-700", bg: "bg-purple-50", border: "border-purple-300" },
+  ]
+
+  const line2Cards = [
+    { label: "Opening Balance", value: openingBalance, color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-300" },
+    { label: "Total Fund Received", value: totalFundReceived, color: "text-indigo-700", bg: "bg-indigo-50", border: "border-indigo-300" },
+    { label: "Total Fund Paid", value: paid, color: "text-teal-700", bg: "bg-teal-50", border: "border-teal-300" },
+    { label: "Closing Balance", value: closingBalance, color: "text-cyan-900", bg: "bg-cyan-50", border: "border-cyan-300", subtitle: "Opening Balance + Total Fund Received - Paid" },
   ]
 
   return (
@@ -185,6 +193,7 @@ export function SupervisorInputterFilter({
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
         >
           <option value="">-- Select inputter --</option>
+          <option value="all">All Inputters</option>
           {members.map((m) => (
             <option key={m.id} value={m.id}>
               {m.name || m.email}
@@ -261,21 +270,91 @@ export function SupervisorInputterFilter({
             </button>
           </div>
 
-          <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {cards.map((card) => (
-              <div key={card.label} className={`rounded-lg border ${card.border} ${card.bg} p-4 text-left`}>
-                <p className="text-xs text-gray-600">{card.label}</p>
-                <p className={`mt-1 text-xl font-bold ${card.color}`}>{formatCurrency(card.value)}</p>
-                {card.subtitle && (
-                  <p className="mt-1 text-[11px] text-gray-500">{card.subtitle}</p>
-                )}
-              </div>
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-600 whitespace-nowrap">From</label>
+              <input
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                className="h-9 rounded-md border border-gray-300 px-2 text-sm"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-600 whitespace-nowrap">To</label>
+              <input
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                className="h-9 rounded-md border border-gray-300 px-2 text-sm"
+              />
+            </div>
+          </div>
+
+          <div className="mb-6 space-y-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+              {line1Cards.map((card) => {
+                const cardStatus = ({ "Rejected": "REJECTED", "Verification Pending": "PENDING", "Approved Pending": "APPROVED" })[card.label] || "ALL"
+                const isActive = activeStatus === cardStatus
+                return (
+                  <button
+                    key={card.label}
+                    onClick={() => setActiveStatus(isActive ? "ALL" : cardStatus)}
+                    className={`rounded-lg border text-left w-full ${card.border} ${card.bg} p-4 ${isActive ? "ring-2 ring-offset-1 ring-blue-400" : ""}`}
+                  >
+                    <p className="text-xs text-gray-600">{card.label}</p>
+                    <p className={`mt-1 text-xl font-bold ${card.color}`}>{formatCurrency(card.value)}</p>
+                  </button>
+                )
+              })}
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {line2Cards.map((card) => {
+                const cardStatus = ({ "Total Fund Paid": "PAID" })[card.label] || "ALL"
+                const isActive = activeStatus === cardStatus
+                return (
+                  <button
+                    key={card.label}
+                    onClick={() => setActiveStatus(isActive ? "ALL" : cardStatus)}
+                    className={`rounded-lg border text-left w-full ${card.border} ${card.bg} p-4 ${isActive ? "ring-2 ring-offset-1 ring-blue-400" : ""}`}
+                  >
+                    <p className="text-xs text-gray-600">{card.label}</p>
+                    <p className={`mt-1 text-xl font-bold ${card.color}`}>{formatCurrency(card.value)}</p>
+                    {card.subtitle && (
+                      <p className="mt-1 text-[11px] text-gray-500">{card.subtitle}</p>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="mb-4 flex flex-wrap gap-2">
+            {[
+              { label: "All", value: "ALL" },
+              { label: `Pending (${dateFilteredExpenses.filter((e) => e.status === "PENDING").length})`, value: "PENDING" },
+              { label: `Approved (${dateFilteredExpenses.filter((e) => e.status === "APPROVED").length})`, value: "APPROVED" },
+              { label: `Rejected (${dateFilteredExpenses.filter((e) => e.status === "REJECTED").length})`, value: "REJECTED" },
+              { label: `Paid (${dateFilteredExpenses.filter((e) => e.status === "PAID").length})`, value: "PAID" },
+            ].map((tab) => (
+              <button
+                key={tab.value}
+                onClick={() => setActiveStatus(tab.value)}
+                className={`px-3 py-1.5 text-sm rounded border ${
+                  activeStatus === tab.value
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                }`}
+              >
+                {tab.label}
+              </button>
             ))}
           </div>
 
           <AdminExpenseManagementTable
+            key={`${selectedId}-${activeStatus}`}
             actorRole={actorRole}
-            expenses={expenses}
+            expenses={statusFilteredExpenses}
             totalReceivedAmount={0}
             collectionFunds={[]}
           />

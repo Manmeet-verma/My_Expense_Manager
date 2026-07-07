@@ -986,8 +986,8 @@ export async function deleteSupervisor(data: z.infer<typeof deleteSupervisorSche
 export async function deleteMember(data: z.infer<typeof deleteMemberSchema>) {
   const session = await auth()
 
-  if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "SUPERVISOR")) {
-    return { error: "Only admins or verifiers can delete inputter accounts" }
+  if (!session?.user || session.user.role !== "ADMIN") {
+    return { error: "Only admins can delete inputter accounts" }
   }
 
   const result = deleteMemberSchema.safeParse(data)

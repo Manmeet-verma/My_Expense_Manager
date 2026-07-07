@@ -12,6 +12,12 @@ type MemberRow = {
   upiId: string | null
   accountNumber: string | null
   assignedProject: string[] | null
+  assignedVerifierId: string | null
+  assignedVerifier: {
+    id: string
+    name: string | null
+    email: string
+  } | null
   receivedAmount: number
   totalEdits: number
   createdAt: Date
@@ -50,5 +56,5 @@ export default async function AdminMembersPage() {
     members = []
   }
 
-  return <MembersContent members={members} canManage={isAdmin || isSupervisor || isVerifier} canApproveExpenses={isSupervisor || isVerifier} />
+  return <MembersContent members={members} canManage={isAdmin} canDeselect={isSupervisor || isVerifier} canApproveExpenses={isSupervisor || isVerifier} />
 }

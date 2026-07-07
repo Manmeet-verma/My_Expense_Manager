@@ -16,6 +16,12 @@ type MemberRow = {
   upiId: string | null
   accountNumber: string | null
   assignedProject: string[] | null
+  assignedVerifierId: string | null
+  assignedVerifier: {
+    id: string
+    name: string | null
+    email: string
+  } | null
   receivedAmount: number
   totalEdits: number
   createdAt: Date
@@ -109,7 +115,8 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
           afterCardsContent={
             <MembersContent
               members={members}
-              canManage={isAdmin || isSupervisor}
+              canManage={isAdmin}
+              canDeselect={isSupervisor || isVerifier}
               canApproveExpenses={isSupervisor || isVerifier}
             />
           }

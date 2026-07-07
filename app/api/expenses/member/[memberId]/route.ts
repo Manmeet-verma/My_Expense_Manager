@@ -25,23 +25,23 @@ export async function GET(_request: Request, context: RouteContext) {
 
     const allowedStatuses: ExpenseStatus[] = ["APPROVED", "REJECTED", "PENDING", "PAID"]
 
-    const whereClause =
+    const isAll = memberId === "all"
+
+    const baseFilter =
       session.user.role === "ADMIN"
-        ? {
-            createdById: memberId,
-            status: {
-              in: allowedStatuses,
-            },
-          }
-        : {
-            createdById: memberId,
-            createdBy: {
-              assignedVerifierId: session.user.id,
-            },
-            status: {
-              in: allowedStatuses,
-            },
-          }
+        ? {}
+        : { createdBy: { assignedVerifierId: session.user.id } }
+
+    const whereClause = isAll
+      ? {
+          ...baseFilter,
+          status: { in: allowedStatuses },
+        }
+      : {
+          createdById: memberId,
+          ...(session.user.role !== "ADMIN" ? { createdBy: { assignedVerifierId: session.user.id } } : {}),
+          status: { in: allowedStatuses },
+        }
 
     const expenses = await prisma.expense.findMany({
       where: whereClause,
@@ -81,25 +81,40 @@ export async function GET(_request: Request, context: RouteContext) {
     const pending = expenses.filter((expense) => expense.status === "PENDING")
     const paid = expenses.filter((expense) => expense.status === "PAID")
 
-    const member = await prisma.user.findUnique({
-      where: { id: memberId },
-      select: {
-        totalBudget: true,
-        receivedAmount: true,
-      },
-    })
+    let totalBudget = 0
+    let receivedAmount = 0
+    let totalCollectionFunds = 0
 
-    const allFunds = await prisma.fund.findMany({
-      where: {
-        userId: memberId,
-        status: "APPROVED",
-      },
-      select: { amount: true },
-    })
+    if (isAll) {
+      const memberIds = session.user.role === "ADMIN"
+        ? await prisma.user.findMany({ where: { role: "MEMBER" }, select: { id: true } })
+        : await prisma.user.findMany({ where: { role: "MEMBER", assignedVerifierId: session.user.id }, select: { id: true } })
 
-    const totalCollectionFunds = allFunds.reduce((sum, f) => sum + f.amount, 0)
-    const totalBudget = member?.totalBudget || 0
-    const receivedAmount = member?.receivedAmount || 0
+      const ids = memberIds.map((m) => m.id)
+
+      const [budgetSum, funds] = await Promise.all([
+        prisma.user.aggregate({ where: { id: { in: ids } }, _sum: { totalBudget: true, receivedAmount: true } }),
+        prisma.fund.aggregate({ where: { userId: { in: ids }, status: "APPROVED" }, _sum: { amount: true } }),
+      ])
+
+      totalBudget = budgetSum._sum.totalBudget || 0
+      receivedAmount = budgetSum._sum.receivedAmount || 0
+      totalCollectionFunds = funds._sum.amount || 0
+    } else {
+      const member = await prisma.user.findUnique({
+        where: { id: memberId },
+        select: { totalBudget: true, receivedAmount: true },
+      })
+
+      const allFunds = await prisma.fund.findMany({
+        where: { userId: memberId, status: "APPROVED" },
+        select: { amount: true },
+      })
+
+      totalBudget = member?.totalBudget || 0
+      receivedAmount = member?.receivedAmount || 0
+      totalCollectionFunds = allFunds.reduce((sum, f) => sum + f.amount, 0)
+    }
 
     return NextResponse.json({
       approved,
