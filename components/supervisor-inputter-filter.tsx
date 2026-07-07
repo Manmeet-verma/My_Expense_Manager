@@ -2,7 +2,7 @@
 
 import React, { startTransition, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { AdminExpenseManagementTable } from './admin-expense-management-table'
+import { VerifierExpenseTable } from './verifier-expense-table'
 import { deselectInputter } from '@/actions/auth'
 import { formatCurrency } from '@/lib/utils'
 import { X } from "lucide-react"
@@ -329,34 +329,12 @@ export function SupervisorInputterFilter({
             </div>
           </div>
 
-          <div className="mb-4 flex flex-wrap gap-2">
-            {[
-              { label: "All", value: "ALL" },
-              { label: `Pending (${dateFilteredExpenses.filter((e) => e.status === "PENDING").length})`, value: "PENDING" },
-              { label: `Approved (${dateFilteredExpenses.filter((e) => e.status === "APPROVED").length})`, value: "APPROVED" },
-              { label: `Rejected (${dateFilteredExpenses.filter((e) => e.status === "REJECTED").length})`, value: "REJECTED" },
-              { label: `Paid (${dateFilteredExpenses.filter((e) => e.status === "PAID").length})`, value: "PAID" },
-            ].map((tab) => (
-              <button
-                key={tab.value}
-                onClick={() => setActiveStatus(tab.value)}
-                className={`px-3 py-1.5 text-sm rounded border ${
-                  activeStatus === tab.value
-                    ? "bg-blue-600 text-white border-blue-600"
-                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          <AdminExpenseManagementTable
+          <VerifierExpenseTable
             key={`${selectedId}-${activeStatus}`}
-            actorRole={actorRole}
             expenses={statusFilteredExpenses}
-            totalReceivedAmount={0}
-            collectionFunds={[]}
+            actorRole={actorRole}
+            activeStatus={activeStatus}
+            onStatusChange={setActiveStatus}
           />
         </>
       )}
