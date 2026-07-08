@@ -43,6 +43,12 @@ interface FundData {
   amount: number
 }
 
+interface FundItem {
+  amount: number
+  createdAt: string
+  fundDate: string
+}
+
 interface ApiResponse {
   approved: NormalizedExpense[]
   rejected: NormalizedExpense[]
@@ -51,6 +57,7 @@ interface ApiResponse {
   totalBudget: number
   receivedAmount: number
   totalCollectionFunds: number
+  funds?: FundItem[]
 }
 
 type ExpenseStatusAll = ExpenseStatus
@@ -68,6 +75,7 @@ export function SupervisorInputterFilter({
   const [totalBudget, setTotalBudget] = useState(0)
   const [receivedAmount, setReceivedAmount] = useState(0)
   const [totalCollectionFunds, setTotalCollectionFunds] = useState(0)
+  const [funds, setFunds] = useState<FundItem[]>([])
   const [fromDate, setFromDate] = useState(() => new Date().toISOString().split("T")[0])
   const [toDate, setToDate] = useState(() => new Date().toISOString().split("T")[0])
   const [activeStatus, setActiveStatus] = useState<string>("ALL")
@@ -117,6 +125,7 @@ export function SupervisorInputterFilter({
           setTotalBudget(data.totalBudget || 0)
           setReceivedAmount(data.receivedAmount || 0)
           setTotalCollectionFunds(data.totalCollectionFunds || 0)
+          setFunds(data.funds || [])
           setActiveStatus("ALL")
         }
       })
@@ -140,14 +149,30 @@ export function SupervisorInputterFilter({
     return dateFilteredExpenses.filter((e) => e.status === activeStatus)
   }, [dateFilteredExpenses, activeStatus])
 
+  const openingBalance = useMemo(() => {
+    if (!fromDate) return totalBudget
+    const startDate = new Date(`${fromDate}T00:00:00`)
+    const preExpenses = expenses.filter((e) => new Date(e.createdAt) < startDate).reduce((sum, e) => sum + e.amount, 0)
+    const preFunds = funds.filter((f) => new Date(f.fundDate || f.createdAt) < startDate).reduce((sum, f) => sum + f.amount, 0)
+    return totalBudget + preFunds - preExpenses
+  }, [expenses, funds, fromDate, totalBudget])
+
   const totalExpenseRequested = dateFilteredExpenses.reduce((sum, e) => sum + e.amount, 0)
   const rejectedAmount = dateFilteredExpenses.filter((e) => e.status === "REJECTED").reduce((sum, e) => sum + e.amount, 0)
   const verificationPending = dateFilteredExpenses.filter((e) => e.status === "PENDING").reduce((sum, e) => sum + e.amount, 0)
   const approvedPending = dateFilteredExpenses.filter((e) => e.status === "APPROVED").reduce((sum, e) => sum + e.amount, 0)
   const netRequiredFund = totalExpenseRequested - rejectedAmount
   const paid = dateFilteredExpenses.filter((e) => e.status === "PAID").reduce((sum, e) => sum + e.amount, 0)
-  const totalFundReceived = totalCollectionFunds
-  const openingBalance = totalBudget
+  const dateFilteredFunds = useMemo(() => {
+    return funds.filter((f) => {
+      const d = new Date(f.fundDate || f.createdAt)
+      const fromOk = !fromDate || d >= new Date(`${fromDate}T00:00:00`)
+      const toOk = !toDate || d <= new Date(`${toDate}T23:59:59`)
+      return fromOk && toOk
+    })
+  }, [funds, fromDate, toDate])
+
+  const totalFundReceived = dateFilteredFunds.reduce((sum, f) => sum + f.amount, 0)
   const closingBalance = openingBalance + totalFundReceived - paid
 
   async function handleDeselect() {

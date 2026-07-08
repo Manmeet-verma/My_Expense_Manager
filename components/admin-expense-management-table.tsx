@@ -158,8 +158,8 @@ export function AdminExpenseManagementTable({
   const shouldShowReviewView = Boolean(selectedMemberId) || showAllExpensesByDefault
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<"ALL" | VerifyStatus>("ALL")
-  const [fromDate, setFromDate] = useState("")
-  const [toDate, setToDate] = useState("")
+  const [fromDate, setFromDate] = useState(() => new Date().toISOString().split("T")[0])
+  const [toDate, setToDate] = useState(() => new Date().toISOString().split("T")[0])
   const [currentPage, setCurrentPage] = useState(1)
   const [dashboardFilter, setDashboardFilter] = useState<DashboardFilter>("all")
   const [draftEntries, setDraftEntries] = useState<ExpenseRow[]>([])
@@ -493,93 +493,54 @@ export function AdminExpenseManagementTable({
 
       {shouldShowReviewView ? (
         <>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          <div className="rounded-lg border border-gray-300 bg-gray-50 p-4 text-left">
-            <p className="text-xs text-gray-600">Opening Balance</p>
-            <p className="mt-1 text-xl font-bold text-gray-700">{formatCurrency(0)}</p>
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-600 whitespace-nowrap">From</label>
+            <Input
+              type="date"
+              value={fromDate}
+              onChange={(e) => {
+                setFromDate(e.target.value)
+                setCurrentPage(1)
+              }}
+              className="w-full sm:w-40"
+            />
           </div>
-
-          <button
-            onClick={() => {
-              setDashboardFilter("all")
-              setCurrentPage(1)
-            }}
-            className={`rounded-lg border p-4 text-left transition ${dashboardFilter === "all" ? "border-blue-400 bg-blue-50" : "border-gray-200 bg-white"}`}
-          >
-            <p className="text-xs text-gray-600">Received Amount</p>
-            <p className="mt-1 text-xl font-bold text-blue-700">{formatCurrency(totalReceivedWithAllExpenses)}</p>
-            <p className="mt-1 text-[11px] text-blue-700/80">Collection + All Expenses</p>
-          </button>
-
-          <button
-            onClick={() => {
-              setDashboardFilter("rejected")
-              setCurrentPage(1)
-            }}
-            className={`rounded-lg border p-4 text-left transition ${dashboardFilter === "rejected" ? "border-red-400 bg-red-50" : "border-gray-200 bg-white"}`}
-          >
-            <p className="text-xs text-gray-600">Rejected Amount</p>
-            <p className="mt-1 text-xl font-bold text-red-700">{formatCurrency(amounts.rejected)}</p>
-          </button>
-
-          <button
-            onClick={() => {
-              setDashboardFilter("approved")
-              setCurrentPage(1)
-            }}
-            className={`rounded-lg border p-4 text-left transition ${dashboardFilter === "approved" ? "border-yellow-400 bg-yellow-50" : "border-gray-200 bg-white"}`}
-          >
-            <p className="text-xs text-gray-600">Approved Amount but Payable</p>
-            <p className="mt-1 text-xl font-bold text-yellow-700">{formatCurrency(amounts.approved)}</p>
-          </button>
-
-          <button
-            onClick={() => {
-              setDashboardFilter("paid")
-              setCurrentPage(1)
-            }}
-            className={`rounded-lg border p-4 text-left transition ${dashboardFilter === "paid" ? "border-green-400 bg-green-50" : "border-gray-200 bg-white"}`}
-          >
-            <p className="text-xs text-gray-600">Approved Amount but Paid</p>
-            <p className="mt-1 text-xl font-bold text-green-700">{formatCurrency(amounts.paid)}</p>
-          </button>
-
-          <div className="rounded-lg border border-violet-300 bg-violet-50 p-4 text-left">
-            <p className="text-xs text-violet-800">Closing Balance</p>
-            <p className="mt-1 text-xl font-bold text-violet-900">{formatCurrency(closingBalance)}</p>
-            <p className="mt-1 text-[11px] text-violet-800/80">Opening Balance + Received Amount - Paid</p>
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-600 whitespace-nowrap">To</label>
+            <Input
+              type="date"
+              value={toDate}
+              onChange={(e) => {
+                setToDate(e.target.value)
+                setCurrentPage(1)
+              }}
+              className="w-full sm:w-40"
+            />
           </div>
-
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => {
-              setDashboardFilter("pending")
-              setCurrentPage(1)
-            }}
-            className={`rounded border px-3 py-1.5 text-sm ${dashboardFilter === "pending" ? "border-red-300 bg-red-50 text-red-700" : "border-gray-200 bg-white text-gray-700"}`}
-          >
-            Pending Head: {formatCurrency(amounts.pending)}
-          </button>
-          <button
-            onClick={() => {
-              setDashboardFilter("rejected")
-              setCurrentPage(1)
-            }}
-            className={`rounded border px-3 py-1.5 text-sm ${dashboardFilter === "rejected" ? "border-red-300 bg-red-50 text-red-700" : "border-gray-200 bg-white text-gray-700"}`}
-          >
-            Rejected Head: {formatCurrency(amounts.rejected)}
-          </button>
-          <button
-            onClick={() => {
-              setDashboardFilter("paid")
-              setCurrentPage(1)
-            }}
-            className={`rounded border px-3 py-1.5 text-sm ${dashboardFilter === "paid" ? "border-green-300 bg-green-50 text-green-700" : "border-gray-200 bg-white text-gray-700"}`}
-          >
-            Paid Head: {formatCurrency(amounts.paid)}
-          </button>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-lg border border-blue-300 bg-blue-50 p-4 text-left">
+            <p className="text-xs text-blue-800">Opening Balance</p>
+            <p className="mt-1 text-xl font-bold text-blue-900">{formatCurrency(openingBalance)}</p>
+          </div>
+
+          <div className="rounded-lg border border-indigo-300 bg-indigo-50 p-4 text-left">
+            <p className="text-xs text-indigo-800">Fund Receivable</p>
+            <p className="mt-1 text-xl font-bold text-indigo-900">{formatCurrency(totalReceivedAmount)}</p>
+          </div>
+
+          <div className="rounded-lg border border-orange-300 bg-orange-50 p-4 text-left">
+            <p className="text-xs text-orange-800">Total Expense Requested</p>
+            <p className="mt-1 text-xl font-bold text-orange-900">{formatCurrency(amounts.pending + amounts.approved + amounts.paid + amounts.rejected)}</p>
+          </div>
+
+          <div className="rounded-lg border border-cyan-300 bg-cyan-50 p-4 text-left">
+            <p className="text-xs text-cyan-800">Closing Balance</p>
+            <p className="mt-1 text-xl font-bold text-cyan-900">{formatCurrency(closingBalance)}</p>
+            <p className="mt-1 text-[11px] text-cyan-800/80">Opening Balance + Fund Receivable - Paid</p>
+          </div>
         </div>
         </>
       ) : null}
@@ -609,30 +570,7 @@ export function AdminExpenseManagementTable({
             placeholder="Search by site name, expense head, or approver name"
             className="w-full sm:max-w-md"
           />
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-600">From</span>
-            <Input
-              type="date"
-              value={fromDate}
-              onChange={(e) => {
-                setFromDate(e.target.value)
-                setCurrentPage(1)
-              }}
-              className="w-full sm:w-40"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-600">To</span>
-            <Input
-              type="date"
-              value={toDate}
-              onChange={(e) => {
-                setToDate(e.target.value)
-                setCurrentPage(1)
-              }}
-              className="w-full sm:w-40"
-            />
-          </div>
+
         </div>
         <div className="flex items-center gap-2">
           {actorRole === "ADMIN" && (

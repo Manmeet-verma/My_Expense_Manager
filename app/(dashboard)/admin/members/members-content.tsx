@@ -28,6 +28,7 @@ interface MemberRow {
     name: string | null
     email: string
   } | null
+  totalBudget: number | null
   receivedAmount: number
   totalEdits: number
   createdAt: Date
@@ -362,14 +363,12 @@ export default function MembersContent({
       filteredMembers.map((member, index) => ({
         "Sr No": index + 1,
         Name: member.name || "-",
-        "Father's Name": member.fatherName || "-",
-        "Aadhaar No.": member.aadhaarNo || "-",
-        Email: member.email,
+        "GPay / UPI": member.upiId || "-",
         "Assigned Project": formatAssignedProjects(member.assignedProject) || "-",
+        "Verifier": member.assignedVerifier?.name || member.assignedVerifier?.email || "-",
         Expenses: member._count.expenses,
         Collection: member.receivedAmount,
         Edits: member.totalEdits,
-        Joined: formatDate(member.createdAt),
       })),
     [filteredMembers]
   )
@@ -476,6 +475,7 @@ export default function MembersContent({
                 aadhaarNo: editingMember.aadhaarNo,
                 upiId: editingMember.upiId,
                 accountNumber: editingMember.accountNumber,
+                totalBudget: editingMember.totalBudget,
                 roleLabel: "Inputter",
               }}
               onCancel={() => setEditingMember(null)}
@@ -509,24 +509,19 @@ export default function MembersContent({
               <thead className="bg-gray-50 text-left text-gray-600">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Name</th>
-                  <th className="px-4 py-3 font-semibold">Father&apos;s Name</th>
-                  <th className="px-4 py-3 font-semibold">Aadhaar No.</th>
                   <th className="px-4 py-3 font-semibold">GPay / UPI</th>
-                  <th className="px-4 py-3 font-semibold">Bank Account</th>
-                  <th className="px-4 py-3 font-semibold">Email</th>
                   <th className="px-4 py-3 font-semibold">Assigned Project</th>
                   <th className="px-4 py-3 font-semibold">Verifier</th>
                   <th className="px-4 py-3 font-semibold">Expenses</th>
                   <th className="px-4 py-3 font-semibold">Collection</th>
                   <th className="px-4 py-3 font-semibold">Edits</th>
-                  <th className="px-4 py-3 font-semibold">Joined</th>
                   <th className="px-4 py-3 font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredMembers.length === 0 ? (
                   <tr>
-                    <td colSpan={13} className="px-4 py-10 text-center text-gray-500">
+                    <td colSpan={8} className="px-4 py-10 text-center text-gray-500">
                       No inputters found
                     </td>
                   </tr>
@@ -545,17 +540,12 @@ export default function MembersContent({
                           </button>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-gray-700">{member.fatherName || "-"}</td>
-                      <td className="px-4 py-3 text-gray-700">{member.aadhaarNo || "-"}</td>
                       <td className="px-4 py-3 text-gray-700">{member.upiId || "-"}</td>
-                      <td className="px-4 py-3 text-gray-700">{member.accountNumber || "-"}</td>
-                      <td className="px-4 py-3 text-gray-700">{member.email}</td>
                       <td className="px-4 py-3 text-gray-700 font-medium">{formatAssignedProjects(member.assignedProject) || "-"}</td>
                       <td className="px-4 py-3 text-gray-700">{member.assignedVerifier?.name || member.assignedVerifier?.email || "-"}</td>
                       <td className="px-4 py-3 text-gray-700">{member._count.expenses}</td>
                       <td className="px-4 py-3 text-gray-700">{formatCurrency(member.receivedAmount)}</td>
                       <td className="px-4 py-3 text-gray-700">{member.totalEdits}</td>
-                      <td className="px-4 py-3 text-gray-700">{formatDate(member.createdAt)}</td>
                       <td className="px-4 py-3">
                         {canManage ? (
                           <div className="flex items-center gap-3">
@@ -609,10 +599,7 @@ export default function MembersContent({
                         {member.name || "-"}
                       </button>
                     )}
-                    <p className="text-sm text-gray-600">Father: {member.fatherName || "-"}</p>
-                    <p className="text-sm text-gray-600">Aadhaar: {member.aadhaarNo || "-"}</p>
                     <p className="text-sm text-gray-600">Verifier: {member.assignedVerifier?.name || member.assignedVerifier?.email || "-"}</p>
-                    <p className="text-sm text-gray-600">{member.email}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>

@@ -84,6 +84,7 @@ export async function GET(_request: Request, context: RouteContext) {
     let totalBudget = 0
     let receivedAmount = 0
     let totalCollectionFunds = 0
+    let memberFunds: { amount: number; createdAt: Date; fundDate: Date }[] = []
 
     if (isAll) {
       const memberIds = session.user.role === "ADMIN"
@@ -108,12 +109,13 @@ export async function GET(_request: Request, context: RouteContext) {
 
       const allFunds = await prisma.fund.findMany({
         where: { userId: memberId, status: "APPROVED" },
-        select: { amount: true },
+        select: { amount: true, createdAt: true, fundDate: true },
       })
 
       totalBudget = member?.totalBudget || 0
       receivedAmount = member?.receivedAmount || 0
       totalCollectionFunds = allFunds.reduce((sum, f) => sum + f.amount, 0)
+      memberFunds = allFunds
     }
 
     return NextResponse.json({
@@ -124,6 +126,7 @@ export async function GET(_request: Request, context: RouteContext) {
       totalBudget,
       receivedAmount,
       totalCollectionFunds,
+      funds: memberFunds.map((f) => ({ amount: f.amount, createdAt: f.createdAt, fundDate: f.fundDate })),
     })
   } catch (error) {
     console.error("Failed to fetch inputter expenses:", error)

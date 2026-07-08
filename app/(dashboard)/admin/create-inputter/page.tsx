@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
+import { getProjects, getSupervisors } from "@/actions/auth"
 import { SignupForm } from "@/components/forms/signup-form"
 
 export default async function CreateInputterPage() {
@@ -13,6 +14,11 @@ export default async function CreateInputterPage() {
     redirect("/dashboard")
   }
 
+  const [projects, verifiers] = await Promise.all([
+    getProjects(),
+    getSupervisors(),
+  ])
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-6">
@@ -20,7 +26,7 @@ export default async function CreateInputterPage() {
         <p className="mt-1 text-gray-600">Use this page to create a new inputter account.</p>
       </div>
 
-      <SignupForm />
+      <SignupForm projects={projects} verifiers={verifiers} />
     </div>
   )
 }

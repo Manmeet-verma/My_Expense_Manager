@@ -19,6 +19,7 @@ interface EditAccountFormProps {
     aadhaarNo: string | null
     upiId?: string | null
     accountNumber?: string | null
+    totalBudget?: number | null
     roleLabel: string
   }
   onCancel: () => void
@@ -36,6 +37,7 @@ export function EditAccountForm({ account, onCancel, onSuccess }: EditAccountFor
   const [upiId, setUpiId] = useState(account.upiId || "")
   const [accountNumber, setAccountNumber] = useState(account.accountNumber || "")
   const [newPassword, setNewPassword] = useState("")
+  const [totalBudget, setTotalBudget] = useState(account.totalBudget?.toString() || "")
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -51,6 +53,7 @@ export function EditAccountForm({ account, onCancel, onSuccess }: EditAccountFor
       upiId,
       accountNumber,
       newPassword,
+      totalBudget: totalBudget ? parseFloat(totalBudget) : undefined,
     })
 
     if (result?.error) {
@@ -147,6 +150,19 @@ export function EditAccountForm({ account, onCancel, onSuccess }: EditAccountFor
                 value={accountNumber}
                 onChange={(e) => setAccountNumber(e.target.value)}
                 placeholder="e.g. 1234567890"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-budget">Opening Balance</Label>
+              <Input
+                id="edit-budget"
+                type="number"
+                min="0"
+                step="0.01"
+                value={totalBudget}
+                onChange={(e) => setTotalBudget(e.target.value)}
+                placeholder="0"
               />
             </div>
 

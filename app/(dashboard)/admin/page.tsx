@@ -22,6 +22,7 @@ type MemberRow = {
     name: string | null
     email: string
   } | null
+  totalBudget: number | null
   receivedAmount: number
   totalEdits: number
   createdAt: Date

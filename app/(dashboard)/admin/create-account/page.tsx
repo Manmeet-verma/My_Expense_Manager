@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
-import { getAdmins, getMembers, getSupervisors } from "@/actions/auth"
+import { getAdmins, getMembers, getSupervisors, getProjects } from "@/actions/auth"
 import { AdminSection } from "@/components/forms/admin-section"
 import { SupervisorSection } from "@/components/forms/supervisor-section"
 import { InputterListSection } from "@/components/inputter-list-section"
@@ -24,6 +24,8 @@ export default async function CreateAccountPage() {
   let admins: Admins = []
   let members: Members = []
   let supervisors: Supervisors = []
+  let projects: { id: string; name: string }[] = []
+  let verifiers: { id: string; name: string | null; email: string }[] = []
 
   try {
     admins = await getAdmins()
@@ -41,6 +43,18 @@ export default async function CreateAccountPage() {
     supervisors = await getSupervisors()
   } catch (error) {
     console.error("Failed to load verifiers:", error)
+  }
+
+  try {
+    projects = await getProjects()
+  } catch (error) {
+    console.error("Failed to load projects:", error)
+  }
+
+  try {
+    verifiers = await getSupervisors()
+  } catch (error) {
+    console.error("Failed to load verifiers for dropdown:", error)
   }
 
   return (
@@ -63,7 +77,7 @@ export default async function CreateAccountPage() {
         <InputterListSection members={members} />
       </div>
 
-      <CreateAccountClient />
+      <CreateAccountClient projects={projects} verifiers={verifiers} />
     </div>
   )
 }

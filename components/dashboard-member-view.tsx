@@ -84,6 +84,14 @@ export default function DashboardMemberView({ stats, expenses, funds, site }: Pr
     })
   }, [funds, fromDate, toDate])
 
+  const dynamicOpeningBalance = useMemo(() => {
+    if (!fromDate) return stats?.totalBudget ?? 0
+    const startDate = new Date(`${fromDate}T00:00:00`)
+    const preExpenses = expenses.filter((e) => new Date(e.createdAt) < startDate).reduce((s, e) => s + e.amount, 0)
+    const preFunds = funds.filter((f) => new Date(f.fundDate) < startDate).reduce((s, f) => s + f.amount, 0)
+    return (stats?.totalBudget ?? 0) + preFunds - preExpenses
+  }, [expenses, funds, fromDate, stats])
+
   const computedStats = useMemo(() => {
     const total = filteredExpenses.length
     const pendingAmount = filteredExpenses.filter((e) => e.status === "PENDING").reduce((s, e) => s + e.amount, 0)
@@ -104,11 +112,11 @@ export default function DashboardMemberView({ stats, expenses, funds, site }: Pr
       totalApprovedAmount,
       totalPaidAmount,
       collectionAmount,
-      totalBudget: stats?.totalBudget ?? 0,
+      totalBudget: dynamicOpeningBalance,
       submittedAmount,
-      remainingBudget: (stats?.totalBudget ?? 0) - submittedAmount,
+      remainingBudget: dynamicOpeningBalance - submittedAmount,
     }
-  }, [filteredExpenses, filteredFunds, stats])
+  }, [filteredExpenses, filteredFunds, dynamicOpeningBalance])
 
   return (
     <div>

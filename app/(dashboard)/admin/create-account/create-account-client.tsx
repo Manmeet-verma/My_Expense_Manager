@@ -29,7 +29,23 @@ const formConfig = [
   },
 ]
 
-export function CreateAccountClient() {
+interface Project {
+  id: string
+  name: string
+}
+
+interface Verifier {
+  id: string
+  name: string | null
+  email: string
+}
+
+interface CreateAccountClientProps {
+  projects?: Project[]
+  verifiers?: Verifier[]
+}
+
+export function CreateAccountClient({ projects = [], verifiers = [] }: CreateAccountClientProps) {
   const [activeForm, setActiveForm] = useState<ActiveForm>(null)
 
   function handleClose() {
@@ -71,7 +87,7 @@ export function CreateAccountClient() {
 
       {activeForm === "inputter" && (
         <div className="mb-6">
-          <SignupForm />
+          <SignupForm projects={projects} verifiers={verifiers} />
         </div>
       )}
     </>

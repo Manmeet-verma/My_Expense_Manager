@@ -36,6 +36,9 @@ const signupSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
   upiId: z.string().optional(),
   accountNumber: z.string().optional(),
+  projectNames: z.array(z.string().min(1)).min(1, "At least one project is required"),
+  verifierIds: z.array(z.string().min(1)).default([]),
+  totalBudget: z.number().min(0).optional(),
 })
 
 const createAdminSchema = z.object({
@@ -93,6 +96,7 @@ const updateAccountSchema = z.object({
   newPassword: z.string().min(6, "Password must be at least 6 characters").optional().or(z.literal("")),
   upiId: z.string().optional().or(z.literal("")),
   accountNumber: z.string().optional().or(z.literal("")),
+  totalBudget: z.number().min(0).optional(),
 })
 
 const assignMemberSchema = z.object({
@@ -155,7 +159,7 @@ export async function signup(data: z.infer<typeof signupSchema>) {
     return { error: result.error.issues[0].message }
   }
 
-  const { email, name, fatherName, aadhaarNo, password, upiId, accountNumber } = result.data
+  const { email, name, fatherName, aadhaarNo, password, upiId, accountNumber, projectNames, verifierIds, totalBudget } = result.data
   const normalizedEmail = email.trim().toLowerCase()
 
   const existingUser = await prisma.user.findUnique({
@@ -168,6 +172,8 @@ export async function signup(data: z.infer<typeof signupSchema>) {
 
   const hashedPassword = await hashPassword(password)
 
+  const normalizedVerifierIds = Array.from(new Set(verifierIds.map((id) => id.trim()).filter(Boolean)))
+
   await prisma.user.create({
     data: {
       email: normalizedEmail,
@@ -178,12 +184,17 @@ export async function signup(data: z.infer<typeof signupSchema>) {
       role: "MEMBER",
       upiId: upiId || null,
       accountNumber: accountNumber || null,
+      assignedProject: projectNames,
+      assignedVerifierIds: normalizedVerifierIds,
+      assignedVerifierId: normalizedVerifierIds[0] ?? null,
+      totalBudget: totalBudget ?? 0,
     },
   })
 
   revalidatePath("/login")
   revalidatePath("/admin")
   revalidatePath("/admin/dashboard")
+  revalidatePath("/admin/members")
   return { success: true }
 }
 
@@ -650,6 +661,7 @@ export async function getMembers(): Promise<{
     name: string | null
     email: string
   } | null
+  totalBudget: number | null
   receivedAmount: number
   createdAt: Date
   _count: {
@@ -688,6 +700,7 @@ export async function getMembers(): Promise<{
           email: true,
         },
       },
+      totalBudget: true,
       receivedAmount: true,
       createdAt: true,
       expenses: {
@@ -726,6 +739,7 @@ export async function getMembers(): Promise<{
           : [],
     assignedVerifierId: member.assignedVerifierId,
     assignedVerifier: member.assignedVerifier,
+    totalBudget: member.totalBudget,
     receivedAmount: member.receivedAmount,
     createdAt: member.createdAt,
     _count: member._count,
@@ -1036,12 +1050,12 @@ export async function updateAccount(data: z.infer<typeof updateAccountSchema>) {
     return { error: result.error.issues[0].message }
   }
 
-  const { userId, name, email, fatherName, aadhaarNo, newPassword, upiId, accountNumber } = result.data
+  const { userId, name, email, fatherName, aadhaarNo, newPassword, upiId, accountNumber, totalBudget } = result.data
   const normalizedEmail = email.trim().toLowerCase()
 
   const existingUser = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, role: true },
+    select: { id: true, role: true, totalBudget: true },
   })
 
   if (!existingUser) {
@@ -1065,6 +1079,7 @@ export async function updateAccount(data: z.infer<typeof updateAccountSchema>) {
     password?: string
     upiId?: string | null
     accountNumber?: string | null
+    totalBudget?: number
   } = {
     name: name.trim(),
     email: normalizedEmail,
@@ -1081,6 +1096,10 @@ export async function updateAccount(data: z.infer<typeof updateAccountSchema>) {
 
   if (newPassword && newPassword.trim()) {
     dataToUpdate.password = await hashPassword(newPassword.trim())
+  }
+
+  if (totalBudget !== undefined) {
+    dataToUpdate.totalBudget = totalBudget
   }
 
   await prisma.user.update({
