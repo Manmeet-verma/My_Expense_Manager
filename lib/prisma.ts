@@ -11,9 +11,13 @@ function createPrismaClient() {
   const connectionString = process.env.DATABASE_URL || process.env.DIRECT_URL
   const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build" || process.env.CI_BUILD === "true" || process.env.VERCEL_ENV === "production" && process.env.NEXT_PUBLIC_VERCEL_ENV === undefined || process.env.HOSTINGER_BUILD === "true"
 
-  if (!connectionString) {
-    if (isBuildPhase) {
-      return new PrismaClient({ log: [] })
+  if (!connectionString || isBuildPhase) {
+    if (isBuildPhase || !connectionString) {
+      const mockPool = new pg.Pool({ connectionString: "postgresql://user:pass@localhost:5432/db" })
+      const adapter = new PrismaPg(mockPool)
+      const client = new PrismaClient({ adapter, log: [] })
+      if (!globalForPrisma.prisma) globalForPrisma.prisma = client
+      return client
     }
     throw new Error("DATABASE_URL or DIRECT_URL environment variable is not set")
   }
