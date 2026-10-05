@@ -16,11 +16,13 @@ export default async function DashboardPage() {
     redirect("/admin")
   }
 
-  const stats = await getExpenseStats()
-  const expenses = await getMyExpenses()
-  const funds = await getMyFunds()
-  const assignment = await getMyAssignment()
-  const rejectedCollections = await getRejectedMemberCollections()
+  const [stats, expenses, funds, assignment, rejectedCollections] = await Promise.all([
+    getExpenseStats(),
+    getMyExpenses(),
+    getMyFunds(),
+    getMyAssignment(),
+    getRejectedMemberCollections(),
+  ])
   const siteName = formatAssignedProjects(assignment?.assignedProject) || session.user.name || session.user.email
 
   return (

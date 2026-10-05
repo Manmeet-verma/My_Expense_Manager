@@ -13,7 +13,6 @@ type Members = Awaited<ReturnType<typeof getMembers>>
 type Supervisors = Awaited<ReturnType<typeof getSupervisors>>
 type Expenses = Awaited<ReturnType<typeof getAllExpenses>>
 type CollectionFunds = Awaited<ReturnType<typeof getCollectionFundsForLedger>>
-type ExpenseStats = Awaited<ReturnType<typeof getExpenseStats>>
 
 export default async function AdminDashboardPage({ searchParams }: { searchParams?: Promise<{ memberId?: string }> }) {
   const session = await auth()
@@ -26,49 +25,34 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
     redirect("/admin")
   }
 
-  let admins: Admins = []
-  let members: Members = []
-  let supervisors: Supervisors = []
-  let expenses: Expenses = []
-  let collectionFunds: CollectionFunds = []
-  let stats: ExpenseStats | null = null
+  const memberId = (await searchParams as { memberId?: string } | null)?.memberId
 
-  try {
-    admins = await getAdmins()
-  } catch (error) {
-    console.error("Failed to load admins:", error)
-  }
-
-  try {
-    members = await getMembers()
-  } catch (error) {
-    console.error("Failed to load members:", error)
-  }
-
-  try {
-    supervisors = await getSupervisors()
-  } catch (error) {
-    console.error("Failed to load verifiers:", error)
-  }
-
-  try {
-    const memberId = (await searchParams as { memberId?: string } | null)?.memberId
-    expenses = await getAllExpenses(memberId === "all" ? undefined : memberId)
-  } catch (error) {
-    console.error("Failed to load dashboard expenses:", error)
-  }
-
-  try {
-    collectionFunds = await getCollectionFundsForLedger()
-  } catch (error) {
-    console.error("Failed to load collection funds:", error)
-  }
-
-  try {
-    stats = await getExpenseStats()
-  } catch (error) {
-    console.error("Failed to load expense stats:", error)
-  }
+  const [admins, members, supervisors, expenses, collectionFunds, stats] = await Promise.all([
+    getAdmins().catch((error) => {
+      console.error("Failed to load admins:", error)
+      return [] as Admins
+    }),
+    getMembers().catch((error) => {
+      console.error("Failed to load members:", error)
+      return [] as Members
+    }),
+    getSupervisors().catch((error) => {
+      console.error("Failed to load verifiers:", error)
+      return [] as Supervisors
+    }),
+    getAllExpenses(memberId === "all" ? undefined : memberId).catch((error) => {
+      console.error("Failed to load dashboard expenses:", error)
+      return [] as Expenses
+    }),
+    getCollectionFundsForLedger().catch((error) => {
+      console.error("Failed to load collection funds:", error)
+      return [] as CollectionFunds
+    }),
+    getExpenseStats().catch((error) => {
+      console.error("Failed to load expense stats:", error)
+      return null
+    }),
+  ])
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">

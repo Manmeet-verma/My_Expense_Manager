@@ -24,8 +24,7 @@ export default async function ExpenseEntryPage({ searchParams }: PageProps) {
   }
 
   const params = await searchParams
-  const stats = await getExpenseStats()
-  const categories = await getCategories()
+  const [stats, categories] = await Promise.all([getExpenseStats(), getCategories()])
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">

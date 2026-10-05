@@ -50,7 +50,16 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
   const memberId = params?.memberId
   const projectFilter = params?.project?.trim()?.toLowerCase()
 
-  const expenses = await getAllExpenses(memberId && memberId !== "all" ? memberId : undefined)
+  const [expenses, stats, collectionFunds, memberResult] = await Promise.all([
+    getAllExpenses(memberId && memberId !== "all" ? memberId : undefined),
+    getExpenseStats(),
+    getCollectionFundsForLedger(),
+    getMembers().catch((error) => {
+      console.error("getMembers error:", error)
+      return []
+    }),
+  ])
+
   const filteredExpenses = projectFilter
     ? expenses.filter((e) =>
         e.createdBy?.assignedProject?.some((p: string) =>
@@ -59,16 +68,7 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
       )
     : expenses
 
-  const stats = await getExpenseStats()
-  const collectionFunds = await getCollectionFundsForLedger()
-
-  let members: MemberRow[] = []
-  try {
-    const result = await getMembers()
-    members = (result || []) as MemberRow[]
-  } catch (error) {
-    console.error("getMembers error:", error)
-  }
+  const members = (memberResult || []) as MemberRow[]
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">

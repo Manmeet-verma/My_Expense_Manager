@@ -404,33 +404,25 @@ export async function getExpenseStats() {
     ? {}
     : { createdById: session.user.id }
 
-  // Avoid running these inside a single interactive transaction to prevent
-  // "expired transaction" timeouts on slow DB connections. Run queries in
-  // parallel with Promise.all instead.
-  const [
-    total,
-    pending,
-    approved,
-    rejected,
-    paid,
-    totalApprovedAmount,
-    totalPaidAmount,
-    pendingAmount,
-    rejectedAmount,
-    totalCollectionAmount,
-    submittedAmount,
-  ] = await Promise.all([
-    prisma.expense.count({ where }),
-    prisma.expense.count({ where: { ...where, status: "PENDING" } }),
-    prisma.expense.count({ where: { ...where, status: "APPROVED" } }),
-    prisma.expense.count({ where: { ...where, status: "REJECTED" } }),
-    prisma.expense.count({ where: { ...where, status: "PAID" } }),
-    prisma.expense.aggregate({ where: { ...where, status: "APPROVED" }, _sum: { amount: true } }),
-    prisma.expense.aggregate({ where: { ...where, status: "PAID" }, _sum: { amount: true } }),
-    prisma.expense.aggregate({ where: { ...where, status: "PENDING" }, _sum: { amount: true } }),
-    prisma.expense.aggregate({ where: { ...where, status: "REJECTED" }, _sum: { amount: true } }),
-    prisma.fund.aggregate({ where: canViewGlobalStats ? {} : { userId: session.user.id, status: "APPROVED" }, _sum: { amount: true } }),
-    prisma.expense.aggregate({ where, _sum: { amount: true } }),
+  // Three queries instead of eleven: one GROUP BY for per-status counts and
+  // sums, one aggregate for totals, one for funds. Keeps latency low against
+  // remote databases where every round trip costs several hundred ms.
+  const [statusGroups, totals, fundTotals] = await Promise.all([
+    prisma.expense.groupBy({
+      by: ["status"],
+      where,
+      _count: { _all: true },
+      _sum: { amount: true },
+    }),
+    prisma.expense.aggregate({
+      where,
+      _count: { _all: true },
+      _sum: { amount: true },
+    }),
+    prisma.fund.aggregate({
+      where: canViewGlobalStats ? {} : { userId: session.user.id, status: "APPROVED" },
+      _sum: { amount: true },
+    }),
   ])
 
   // Get user's total budget
@@ -443,20 +435,24 @@ export async function getExpenseStats() {
     totalBudget = user?.totalBudget || 0
   }
 
-  const submittedTotal = submittedAmount._sum.amount || 0
+  const statsByStatus = new Map(statusGroups.map((group) => [group.status as string, group]))
+  const countFor = (status: string) => statsByStatus.get(status)?._count._all ?? 0
+  const amountFor = (status: string) => statsByStatus.get(status)?._sum.amount ?? 0
+
+  const submittedTotal = totals._sum.amount || 0
   const remainingBudget = totalBudget - submittedTotal
 
   return {
-    total,
-    pending,
-    approved,
-    rejected,
-    paid,
-    pendingAmount: pendingAmount._sum.amount || 0,
-    rejectedAmount: rejectedAmount._sum.amount || 0,
-    totalApprovedAmount: totalApprovedAmount._sum.amount || 0,
-    totalPaidAmount: totalPaidAmount._sum.amount || 0,
-    collectionAmount: totalCollectionAmount._sum.amount || 0,
+    total: totals._count._all,
+    pending: countFor("PENDING"),
+    approved: countFor("APPROVED"),
+    rejected: countFor("REJECTED"),
+    paid: countFor("PAID"),
+    pendingAmount: amountFor("PENDING"),
+    rejectedAmount: amountFor("REJECTED"),
+    totalApprovedAmount: amountFor("APPROVED"),
+    totalPaidAmount: amountFor("PAID"),
+    collectionAmount: fundTotals._sum.amount || 0,
     totalBudget,
     submittedAmount: submittedTotal,
     remainingBudget,

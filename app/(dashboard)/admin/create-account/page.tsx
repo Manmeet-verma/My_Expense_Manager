@@ -21,41 +21,26 @@ export default async function CreateAccountPage() {
     redirect("/dashboard")
   }
 
-  let admins: Admins = []
-  let members: Members = []
-  let supervisors: Supervisors = []
-  let projects: { id: string; name: string }[] = []
-  let verifiers: { id: string; name: string | null; email: string }[] = []
+  const [admins, members, supervisors, projects] = await Promise.all([
+    getAdmins().catch((error) => {
+      console.error("Failed to load admins:", error)
+      return [] as Admins
+    }),
+    getMembers().catch((error) => {
+      console.error("Failed to load members:", error)
+      return [] as Members
+    }),
+    getSupervisors().catch((error) => {
+      console.error("Failed to load verifiers:", error)
+      return [] as Supervisors
+    }),
+    getProjects().catch((error) => {
+      console.error("Failed to load projects:", error)
+      return [] as { id: string; name: string }[]
+    }),
+  ])
 
-  try {
-    admins = await getAdmins()
-  } catch (error) {
-    console.error("Failed to load admins:", error)
-  }
-
-  try {
-    members = await getMembers()
-  } catch (error) {
-    console.error("Failed to load members:", error)
-  }
-
-  try {
-    supervisors = await getSupervisors()
-  } catch (error) {
-    console.error("Failed to load verifiers:", error)
-  }
-
-  try {
-    projects = await getProjects()
-  } catch (error) {
-    console.error("Failed to load projects:", error)
-  }
-
-  try {
-    verifiers = await getSupervisors()
-  } catch (error) {
-    console.error("Failed to load verifiers for dropdown:", error)
-  }
+  const verifiers = supervisors
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
