@@ -48,7 +48,7 @@ DATABASE_URL="postgresql://postgres:YOUR_PASSWORD@db.YOUR_PROJECT.supabase.co:54
 
 # NextAuth Configuration
 NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="generate-a-secure-random-string"
+AUTH_SECRET="generate-a-secure-random-string"
 
 # Supabase (optional)
 NEXT_PUBLIC_SUPABASE_URL="https://YOUR_PROJECT.supabase.co"
@@ -56,6 +56,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
 ```
 
 Generate a secret with: `openssl rand -base64 32`
+
+The app reads `AUTH_SECRET` first and falls back to `NEXTAUTH_SECRET`, so either name works. In
+production set `NEXTAUTH_URL` to the public https origin (e.g.
+`https://moccasin-leopard-145044.hostingersite.com`), otherwise cookies will not be set correctly.
 
 ### 4. Install Dependencies
 

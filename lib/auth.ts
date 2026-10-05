@@ -8,7 +8,11 @@ const authSecret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET
 const isProduction = process.env.NODE_ENV === "production"
 
 if (!authSecret) {
-  throw new Error("AUTH_SECRET (or NEXTAUTH_SECRET) is required")
+  const duringBuild = process.env.NEXT_PHASE === "phase-production-build"
+  const log = duringBuild ? console.warn : console.error
+  log(
+    "[auth] AUTH_SECRET (or NEXTAUTH_SECRET) is not set. Login will fail until it is added to the environment variables.",
+  )
 }
 
 export const authOptions: NextAuthOptions = {
@@ -122,6 +126,9 @@ export const authOptions: NextAuthOptions = {
 }
 
 export async function auth() {
+  if (!authSecret) {
+    return null
+  }
   try {
     return await getServerSession(authOptions)
   } catch {
