@@ -39,7 +39,15 @@ export function LoginForm() {
         return
       }
 
-      setError(result?.error ? "Invalid email or password" : "Unable to sign in. Please try again.")
+      if (result?.error) {
+        setError(
+          result.error === "CredentialsSignin"
+            ? "Invalid email or password"
+            : "Server error while checking your credentials. Please try again later.",
+        )
+      } else {
+        setError("Unable to sign in. Please try again.")
+      }
     } catch {
       setError("Unable to sign in. Please check your connection and try again.")
     } finally {
