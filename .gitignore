@@ -33,6 +33,9 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# runtime-generated auth secret (never commit)
+/.data/
+
 # vercel
 .vercel
 

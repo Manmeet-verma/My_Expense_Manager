@@ -1,17 +1,60 @@
 import { getServerSession, type NextAuthOptions } from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import { compare, hash } from "bcryptjs"
+import { randomBytes } from "crypto"
+import { mkdirSync, readFileSync, writeFileSync } from "fs"
+import path from "path"
 import { prisma } from "./prisma"
 import { Role } from "@/lib/types"
 
-const authSecret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET
-const isProduction = process.env.NODE_ENV === "production"
+export type AuthSecretSource = "env" | "file" | "generated"
 
-if (!authSecret) {
-  const duringBuild = process.env.NEXT_PHASE === "phase-production-build"
-  const log = duringBuild ? console.warn : console.error
+const isProduction = process.env.NODE_ENV === "production"
+const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build"
+
+function resolveAuthSecret(): { secret: string; source: AuthSecretSource } {
+  const fromEnv = process.env.AUTH_SECRET?.trim() || process.env.NEXTAUTH_SECRET?.trim()
+  if (fromEnv) return { secret: fromEnv, source: "env" }
+
+  const file = path.join(process.cwd(), ".data", "auth-secret")
+
+  try {
+    const existing = readFileSync(file, "utf8").trim()
+    if (existing) return { secret: existing, source: "file" }
+  } catch {
+    // Not created yet.
+  }
+
+  const generated = randomBytes(32).toString("base64")
+
+  if (isBuildPhase) return { secret: generated, source: "generated" }
+
+  try {
+    mkdirSync(path.dirname(file), { recursive: true })
+    writeFileSync(file, generated, { encoding: "utf8", mode: 0o600, flag: "wx" })
+    return { secret: generated, source: "file" }
+  } catch {
+    try {
+      const existing = readFileSync(file, "utf8").trim()
+      if (existing) return { secret: existing, source: "file" }
+    } catch {
+      // Unwritable filesystem; fall through to a process-local secret.
+    }
+  }
+
+  return { secret: generated, source: "generated" }
+}
+
+const { secret: authSecret, source: authSecretSource } = resolveAuthSecret()
+
+export { authSecretSource }
+
+if (authSecretSource !== "env") {
+  const log = isBuildPhase ? console.warn : console.error
   log(
-    "[auth] AUTH_SECRET (or NEXTAUTH_SECRET) is not set. Login will fail until it is added to the environment variables.",
+    authSecretSource === "file"
+      ? "[auth] AUTH_SECRET is not set — using a generated secret from .data/auth-secret. Add AUTH_SECRET to the environment variables so it survives redeploys."
+      : "[auth] AUTH_SECRET is not set and .data/auth-secret is not writable — sessions will reset on every restart. Add AUTH_SECRET to the environment variables.",
   )
 }
 
